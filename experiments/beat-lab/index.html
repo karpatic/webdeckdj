@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; worker-src 'self'; connect-src 'self'; media-src 'self' blob:; style-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Beat Lab — local experiment</title>
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<main>
+<header><div><small>STANDALONE / NOT CONNECTED TO THE DJ</small><h1>Beat Lab <span>EXPERIMENT</span></h1></div><button id="stop-all">Stop all / cancel</button></header>
+<p>Compare Essentia Degara and music-tempo (BeatRoot JS) on the same file and window. Analyze each, then switch completed beat maps in that file’s history and listen with clicks. A and B still load independently. No uploads, autoplay or saved state.</p>
+<div class="row"><label>Analysis window <select id="window"><option value="30">First 30 seconds</option><option value="60" selected>First 60 seconds</option><option value="90">First 90 seconds</option></select></label><button id="tutorial">Load existing tutorial into A</button><small>Local preview only; does not copy or auto-analyze it.</small></div>
+<p class="muted">Load full-length mono/stereo songs. Only the selected opening window is analyzed; the full track is available for playback after Analyze. One analysis at a time. Long files use more decoding memory.</p>
+<div id="tracks"></div>
+<section>
+<h2>EXPERIMENTAL · B → A</h2>
+<div class="row"><button id="sync" disabled>Match tempo + start B on A’s next beat</button><button id="rate-reset">Reset B rate to 1×</button><output id="sync-status" aria-live="polite">Analyze both tracks first.</output></div>
+<p class="muted">Start A first. B jumps to its next measured/corrected tick and is scheduled on A’s next tick using the same audio clock. One-shot alignment only: no continuous phase lock, downbeat recognition or drift correction. Playback-rate changes also change pitch.</p>
+</section>
+<details><summary>Engines, privacy & licensing</summary>
+<p><strong>Only two engines:</strong> Essentia.js 0.1.3 Degara (default) and music-tempo 1.0.3 (BeatRoot JS, <a href="vendor/MUSIC-TEMPO-LICENSE.txt">MIT</a>). Both receive the same mono 44,100 Hz prefix; configured tempo-induction range 40–208 BPM. Neither supplies a meaningful confidence value. Compare compute/startup times for the same window; total time may include decoding on the first run. BPM agreement is not evidence of correct beat phase.</p>
+<p>All analysis code and WASM are served locally from this directory. Audio stays in this browser. Cancellation terminates either disposable analysis worker; browser-native decoding cannot be interrupted, so its result is discarded and a new decode waits for it to finish.</p>
+<p><strong>Not cleared for public distribution.</strong> Essentia and this experiment’s source use AGPL-3.0-or-later; preserve notices and review complete corresponding-source/network-use obligations before redistribution or DJ integration. No pretrained models are used. Essentia model weights have separate licensing; the library license does not grant model rights. <a href="README.md">Readme / observed evidence</a> · <a href="vendor/SOURCES.md">Pinned source & notices</a> · <a href="vendor/LICENSE">AGPL license</a></p>
+</details>
+<footer>Review-first local spike. Both shipped engines were exercised on identical real audio in Node; this update has not been browser-auditioned. Your open playback tabs are left untouched. No DJ integration or deployment.</footer>
+</main>
+<template id="track-template">
+<section class="track">
+<h2></h2>
+<div class="row"><label>Local audio <input class="file" type="file" accept="audio/*"></label><label>Next analysis engine <select class="engine"><option value="degara" selected>Essentia · Degara</option><option value="music-tempo">music-tempo · BeatRoot JS</option></select></label><button class="analyze" disabled>Analyze</button><button class="cancel" disabled>Cancel</button></div>
+<p class="status" role="status">Choose a local audio file.</p>
+<output class="metrics">No measured result yet.</output>
+<canvas width="1200" height="110" role="img" aria-label="Beat tick timeline; no analysis yet"></canvas>
+<div class="row"><button class="play" disabled>Play</button><button class="pause" disabled>Pause</button><button class="stop" disabled>Stop</button><label><input class="clicks" type="checkbox"> Beat-click overlay</label><label>Volume <input class="volume" type="range" min="0" max="0.7" step="0.01" value="0.25"></label><output class="clock">0.00 s · 1.000×</output></div>
+<label class="seek-label">Seek <input class="seek" type="range" min="0" max="1" step="0.01" value="0" disabled></label>
+<div class="row"><label>Manual BPM <input class="bpm" type="number" min="20" max="400" step="0.01" placeholder="Detected ticks" disabled></label><button class="half" disabled>½ BPM</button><button class="double" disabled>2× BPM</button><label>Beat offset (ms) <input class="offset" type="number" min="-2000" max="2000" step="5" value="0" disabled></label><button class="reset" disabled>Use detected ticks</button></div>
+<small>Blank manual BPM = original nonuniform ticks. Manual BPM / half-double makes a uniform grid anchored at the first detected tick. Offset shifts either grid; it does not change the audio.</small>
+<details><summary>Comparison history / switch beat map for this file</summary><small>Analyze both engines on the same window. Up to eight completed runs are kept here; replacing the file clears them. “Use this beat map” restores that run’s detected ticks and clears manual corrections, without moving playback or resetting its rate. The engine selector only chooses the next analysis.</small><ul class="history"><li>No completed runs.</li></ul></details>
+</section>
+</template>
+</body>
+</html>

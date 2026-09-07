@@ -1,0 +1,123 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DJ Mixer</title> 
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DJ Mixer with Visualizer">
+  <link rel="stylesheet" href="./dj-faders.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"> 
+  <!-- Butterchurn libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/butterchurn@2.6.7/lib/butterchurn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/butterchurn-presets@2.4.7/lib/butterchurnPresets.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/butterchurn-presets@2.4.7/lib/butterchurnPresetsExtra.min.js"></script>
+</head>
+<body>   
+  <script type="importmap">
+    { 
+      "imports": {
+        "react": "https://esm.sh/react@17.0.2/es2022/react.mjs",
+        "react-dom": "https://esm.sh/react-dom@17.0.2/es2022/react-dom.mjs",
+        "marked": "https://esm.sh/marked@2.0.1"
+      } 
+    }
+  </script>  
+  <a href="./dj.html" class="btn btn-primary">DJ</a>
+  <a href="./index.html" class="btn btn-primary">Itunes</a>
+  <a href="https://getfrom.net/cms/soundboard.php" class="btn btn-primary">Soundboard</a>
+ 
+  <div id="react-root"></div> 
+
+  <script>
+    console.log(window); 
+    document.addEventListener('DOMContentLoaded', () => { 
+      window.butterchurn = butterchurn; 
+    });
+  </script> 
+  <script src="https://esm.sh/react@17.0.2/es2022/react.mjs" type="module"></script>
+  <script src="https://esm.sh/react-dom@17.0.2/es2022/react-dom.mjs" type="module"></script> 
+  <!-- bundless -->
+  <script src="./js/components/dj.jsx?e=3" type="text/jsx"></script> 
+
+  <script src="./js/bundless.acorn.min.js?t=31" cache="false" type="module"></script>  
+ 
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"276241d394ee45569b52292ab3e18357","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
+
+<style>
+  /* Add custom styles for the visualizer */
+  body{
+    background-color: #1a1a1a;
+  }
+  canvas {
+    max-width: 100%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    border-radius: 4px;
+  }
+  
+  .btn-outline-light {
+    border-color: #aaa;
+  }
+  
+  .card-header {
+    background-color: #1a1a1a;
+  }
+
+  .rotary-field {
+    display: grid;
+    grid-template-columns: 60px 48px 68px;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+  }
+
+  .rotary-control {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    justify-self: center;
+    border: 2px solid #777;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #666, #222 65%);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.45);
+    cursor: ns-resize;
+    outline: none;
+    touch-action: none;
+  }
+
+  .rotary-control:hover,
+  .rotary-control.is-dragging {
+    border-color: #bbb;
+  }
+
+  .rotary-control:focus-visible {
+    border-color: #03dac6;
+    box-shadow: 0 0 0 3px rgba(3,218,198,0.35), 0 2px 5px rgba(0,0,0,0.45);
+  }
+
+  .rotary-pointer {
+    position: absolute;
+    inset: 5px;
+    pointer-events: none;
+  }
+
+  .rotary-pointer::before {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 3px;
+    height: 13px;
+    border-radius: 2px;
+    background: #03dac6;
+    content: "";
+    transform: translateX(-50%);
+  }
+
+  .rotary-field .eq-value {
+    min-width: 68px;
+    text-align: right;
+  }
+</style>

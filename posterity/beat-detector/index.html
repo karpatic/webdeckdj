@@ -1,0 +1,122 @@
+<!doctype html>
+<!--
+  FROZEN POSTERITY COPY of the pre-Degara DJ beat detector.
+  Authored modules, style, runtime, examples, and third-party browser dependencies
+  are local to this directory. See README.md and MANIFEST.sha256.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>DJ Mixer — Original Beat Detector Archive</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Frozen archive of the original DJ Mixer beat detector">
+  <link rel="stylesheet" href="./dj-faders.css">
+  <link rel="stylesheet" href="./vendor/bootstrap-5.0.0-beta1.min.css">
+  <link rel="stylesheet" href="./vendor/bootstrap-icons-1.13.1.css">
+  <script src="./vendor/butterchurn-2.6.7.min.js"></script>
+  <script src="./vendor/butterchurn-presets-2.4.7.min.js"></script>
+  <script src="./vendor/butterchurn-presets-extra-2.4.7.min.js"></script>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "./vendor/react.mjs",
+        "react-dom": "./vendor/react-dom.mjs",
+        "marked": "./vendor/marked.mjs",
+        "/react@17.0.2/es2022/react.mjs": "./vendor/react.mjs",
+        "/scheduler@^0.20.2?target=es2022": "./vendor/scheduler.mjs",
+        "/marked@2.0.1/es2022/marked.mjs": "./vendor/marked-2.0.1.mjs"
+      }
+    }
+  </script>
+
+  <div id="react-root"></div>
+
+  <script>
+    console.log(window);
+    document.addEventListener('DOMContentLoaded', () => {
+      window.butterchurn = butterchurn;
+    });
+  </script>
+  <script src="./vendor/react.mjs" type="module"></script>
+  <script src="./vendor/react-dom.mjs" type="module"></script>
+  <script src="./js/components/dj.jsx?archive=original" type="text/jsx"></script>
+  <script src="./js/bundless.acorn.min.js?archive=original" cache="false" type="module"></script>
+</body>
+</html>
+
+<style>
+  /* Original inline DJ styles; only dependency paths and archive metadata changed. */
+  body{
+    background-color: #1a1a1a;
+  }
+  canvas {
+    max-width: 100%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    border-radius: 4px;
+  }
+
+  .btn-outline-light {
+    border-color: #aaa;
+  }
+
+  .card-header {
+    background-color: #1a1a1a;
+  }
+
+  .rotary-field {
+    display: grid;
+    grid-template-columns: 60px 48px 68px;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+  }
+
+  .rotary-control {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    justify-self: center;
+    border: 2px solid #777;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #666, #222 65%);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.45);
+    cursor: ns-resize;
+    outline: none;
+    touch-action: none;
+  }
+
+  .rotary-control:hover,
+  .rotary-control.is-dragging {
+    border-color: #bbb;
+  }
+
+  .rotary-control:focus-visible {
+    border-color: #03dac6;
+    box-shadow: 0 0 0 3px rgba(3,218,198,0.35), 0 2px 5px rgba(0,0,0,0.45);
+  }
+
+  .rotary-pointer {
+    position: absolute;
+    inset: 5px;
+    pointer-events: none;
+  }
+
+  .rotary-pointer::before {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 3px;
+    height: 13px;
+    border-radius: 2px;
+    background: #03dac6;
+    content: "";
+    transform: translateX(-50%);
+  }
+
+  .rotary-field .eq-value {
+    min-width: 68px;
+    text-align: right;
+  }
+</style>
