@@ -35,8 +35,20 @@
   </script> 
   <script src="https://esm.sh/react@17.0.2/es2022/react.mjs" type="module"></script>
   <script src="https://esm.sh/react-dom@17.0.2/es2022/react-dom.mjs" type="module"></script> 
+  <!--
+    Private local Essentia.js 0.1.3 / Degara integration. Original authored beat
+    detector frozen first at ./posterity/beat-detector/index.html. Redistribution
+    review remains outstanding; see ./vendor/essentia-0.1.3/SOURCES.md.
+  -->
+  <script src="./js/beat/analysis-client.js?degara=0.1.3"></script>
+  <script src="./js/beat/sync.js?degara=0.1.3"></script>
+  <script>
+    // Native module loading stays outside the JSX compiler.
+    window.webDeckMidiReady = import('./js/midi/numark-total-control.mjs');
+    window.webDeckMidiReady.catch(() => {});
+  </script>
   <!-- bundless -->
-  <script src="./js/components/dj.jsx?e=3" type="text/jsx"></script> 
+  <script src="./js/components/dj.jsx?e=28" type="text/jsx"></script>
 
   <script src="./js/bundless.acorn.min.js?t=31" cache="false" type="module"></script>  
  
