@@ -192,6 +192,18 @@
 }
 .crate-files > .list-group-item { display: block; width: 100%; text-align: left; overflow-wrap: anywhere; }
 .crate-browser [data-browse-focus="true"] { border-color: #03dac6; }
+.remote-audio-connect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #454b50;
+  border-radius: 4px;
+  background: #202428;
+}
+.remote-audio-connect label { display: grid; flex: 1 1 220px; gap: 0.25rem; color: #f1f3f5; }
+.remote-audio-connect input { min-width: 0; padding: 0.375rem 0.5rem; border: 1px solid #6c757d; border-radius: 4px; }
 @media (max-width: 576px) {
   .crate-browser { grid-template-columns: 1fr; }
 }

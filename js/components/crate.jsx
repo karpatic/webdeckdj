@@ -22,7 +22,8 @@ const EXAMPLE_DIRECTORY = {
 const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selectedFxId, onSelectFx, onPreviewFx, onRegisterMidiActions }) => {
   const [directories, setDirectories] = React.useState([]);
   const [bundledFx, setBundledFx] = React.useState([]);
-  const allDirectories = bundledFx.concat(directories);
+  const [remoteDirectories, setRemoteDirectories] = React.useState([]);
+  const allDirectories = bundledFx.concat(directories, remoteDirectories);
   const directoryEntries = [{ ...EXAMPLE_DIRECTORY, name: 'builtin:example', label: 'Example', type: 'music' }, ...allDirectories];
   const [selectedDirectoryKey, setSelectedDirectoryKey] = React.useState('builtin:example');
   const [selectedFileIndex, setSelectedFileIndex] = React.useState(0);
@@ -104,6 +105,13 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
   const [error, setError] = React.useState("");
   const [exampleLoading, setExampleLoading] = React.useState({});
   const [exampleLoadError, setExampleLoadError] = React.useState("");
+  const [remotePanelOpen, setRemotePanelOpen] = React.useState(false);
+  const [remoteEndpointInput, setRemoteEndpointInput] = React.useState("");
+  const [remotePasswordInput, setRemotePasswordInput] = React.useState("");
+  const [remoteStatus, setRemoteStatus] = React.useState("");
+  const [remoteBusy, setRemoteBusy] = React.useState(false);
+  const [remoteLoading, setRemoteLoading] = React.useState({});
+  const remoteConnectionRef = React.useRef(null);
   const fileInputRef = React.useRef(null);
   const fxInputRef = React.useRef(null);
   const browserRef = React.useRef(null);
@@ -234,6 +242,85 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
     onFxSamplesChange(samples);
   }, [directories, bundledFx, onFxSamplesChange]);
 
+  React.useEffect(() => () => {
+    remoteConnectionRef.current = null;
+  }, []);
+
+  const remoteRequest = async (url, password) => fetch(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${password}` },
+    cache: 'no-store',
+    credentials: 'omit',
+    redirect: 'error',
+    referrerPolicy: 'no-referrer'
+  });
+
+  const connectRemoteAudio = async (event) => {
+    event.preventDefault();
+    if (remoteBusy) return;
+    setRemoteBusy(true);
+    setError("");
+    setRemoteStatus("");
+    try {
+      const endpoint = new URL(remoteEndpointInput.trim());
+      if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+        throw new Error('Use an HTTPS manifest endpoint without credentials, query parameters, or a fragment.');
+      }
+      if (!remotePasswordInput) throw new Error('Enter the audio password.');
+      const response = await remoteRequest(endpoint.href, remotePasswordInput);
+      if (!response.ok) throw new Error(response.status === 401 ? 'The endpoint or password was not accepted.' : 'The audio endpoint is unavailable.');
+      const payload = await response.json();
+      if (payload?.version !== 1 || !Array.isArray(payload.albums)) throw new Error('The endpoint returned an invalid audio manifest.');
+      const albums = payload.albums.map((album, albumIndex) => {
+        if (!album || typeof album.name !== 'string' || !album.name.trim() || !Array.isArray(album.tracks)) {
+          throw new Error('The endpoint returned an invalid album.');
+        }
+        const files = album.tracks.map((track) => {
+          if (!track || typeof track.id !== 'string' || !/^[a-f0-9]{64}$/.test(track.id)
+            || typeof track.name !== 'string' || !track.name || !/\.mp3$/i.test(track.name)
+            || !Number.isSafeInteger(track.size) || track.size < 1
+            || typeof track.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(track.sha256)) {
+            throw new Error('The endpoint returned invalid track metadata.');
+          }
+          return { ...track, remote: true };
+        });
+        return {
+          name: `remote:${albumIndex}:${crypto.randomUUID()}`,
+          label: album.name,
+          type: 'music',
+          remote: true,
+          files,
+          fileIds: files.map(track => track.id)
+        };
+      });
+      remoteConnectionRef.current = { endpoint: endpoint.href, password: remotePasswordInput };
+      setRemoteDirectories(albums);
+      setRemoteEndpointInput("");
+      setRemotePasswordInput("");
+      setRemotePanelOpen(false);
+      setRemoteStatus(`Connected: ${albums.length} remote album${albums.length === 1 ? '' : 's'}.`);
+    } catch (err) {
+      remoteConnectionRef.current = null;
+      setRemoteDirectories([]);
+      setRemoteStatus(err.message || 'Could not connect to remote audio.');
+    } finally {
+      setRemoteBusy(false);
+    }
+  };
+
+  const disconnectRemoteAudio = () => {
+    remoteConnectionRef.current = null;
+    setRemoteDirectories([]);
+    setRemoteEndpointInput("");
+    setRemotePasswordInput("");
+    setRemoteStatus('Remote audio disconnected.');
+    if (selectedDirectory?.remote) {
+      setSelectedDirectoryKey('builtin:example');
+      setFolderPath('');
+      setSelectedFileIndex(0);
+    }
+  };
+
   const handleDirectorySelect = async (event, type) => {
     const files = Array.from(event.target.files || []);
     event.target.value = '';
@@ -342,12 +429,34 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
     }
   };
 
+  const loadRemoteTrack = async (track, deck) => {
+    const connection = remoteConnectionRef.current;
+    if (!connection || remoteLoading[track.id]) return;
+    setRemoteLoading(previous => ({ ...previous, [track.id]: true }));
+    setError("");
+    try {
+      const url = new URL(connection.endpoint);
+      url.searchParams.set('track', track.id);
+      const response = await remoteRequest(url.href, connection.password);
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.ok || !contentType.toLowerCase().startsWith('audio/')) throw new Error('Remote MP3 unavailable');
+      const audioData = await response.blob();
+      if (!audioData.size || audioData.size !== track.size) throw new Error('Remote MP3 was incomplete');
+      handleLoadTrack(new File([audioData], track.name, { type: contentType || 'audio/mpeg' }), deck);
+    } catch (err) {
+      setError(`Could not load “${track.name}” from remote audio. Reconnect and try again.`);
+    } finally {
+      setRemoteLoading(previous => ({ ...previous, [track.id]: false }));
+    }
+  };
+
   const loadSelectedTrack = (deck) => {
     const entry = visibleEntries[selectedFileIndex];
     const file = entry && entry.kind === 'file' ? entry.file : null;
     if (browseFocus !== 'files') return;
-    if (!file || selectedDirectory.type === 'fx' || exampleLoading[file.path]) return;
+    if (!file || selectedDirectory.type === 'fx' || exampleLoading[file.path] || remoteLoading[file.id]) return;
     if (selectedDirectory.name === 'builtin:example') loadExampleTrack(file, deck);
+    else if (selectedDirectory.remote) loadRemoteTrack(file, deck);
     else handleLoadTrack(file, deck);
   };
 
@@ -455,11 +564,29 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
         <div className="d-flex flex-wrap gap-2 mb-3">
           <button className="btn btn-primary" disabled={busy} onClick={() => fileInputRef.current.click()}>Add MP3 Directory</button>
           <button className="btn btn-outline-info" disabled={busy} onClick={() => fxInputRef.current.click()}>Add Samples MP3 Directory</button>
+          <button type="button" className="btn btn-outline-light" disabled={remoteBusy}
+            onClick={() => setRemotePanelOpen(open => !open)}>Connect Audio</button>
+          {remoteDirectories.length > 0 && <button type="button" className="btn btn-outline-warning"
+            disabled={remoteBusy} onClick={disconnectRemoteAudio}>Disconnect Audio</button>}
           <button className="btn btn-danger" disabled={busy} onClick={clearImportedMusic}>Clear Imported Music</button>
         </div>
+        {remotePanelOpen && <form className="remote-audio-connect mb-3" onSubmit={connectRemoteAudio}>
+          <label>Manifest endpoint
+            <input type="url" required value={remoteEndpointInput} autoCapitalize="none" autoCorrect="off" spellCheck="false"
+              placeholder="https://…" onChange={event => setRemoteEndpointInput(event.target.value)} />
+          </label>
+          <label>Password
+            <input type="password" required value={remotePasswordInput} autoComplete="off"
+              onChange={event => setRemotePasswordInput(event.target.value)} />
+          </label>
+          <button type="submit" className="btn btn-sm btn-primary" disabled={remoteBusy}>{remoteBusy ? 'Connecting…' : 'Connect'}</button>
+          <button type="button" className="btn btn-sm btn-outline-secondary" disabled={remoteBusy}
+            onClick={() => { setRemotePanelOpen(false); setRemotePasswordInput(""); }}>Cancel</button>
+        </form>}
         <input type="file" ref={fileInputRef} webkitdirectory="true" directory="true" multiple accept=".mp3,audio/mpeg" hidden onChange={event => handleDirectorySelect(event, 'music')} />
         <input type="file" ref={fxInputRef} webkitdirectory="true" directory="true" multiple accept=".mp3,audio/mpeg" hidden onChange={event => handleDirectorySelect(event, 'fx')} />
         {error && <p role="alert">{error}</p>}
+        {remoteStatus && <p role="status">{remoteStatus}</p>}
         {exampleLoadError && <p role="alert">{exampleLoadError}</p>}
         {busy && <p role="status">Updating crate…</p>}
         {selectedFile && exampleLoading[selectedFile.path] && <p role="status">Loading MP3…</p>}
@@ -486,7 +613,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
               <button type="button" className="btn btn-sm btn-outline-info" disabled={!selectedFile.size}
                 onClick={() => onPreviewFx(selectedSampleId)}>Preview Sample</button>
             </div>}
-            {!selectedDirectory.builtIn && <div className="mt-2">
+            {!selectedDirectory.builtIn && !selectedDirectory.remote && <div className="mt-2">
               <button type="button" className="btn btn-sm btn-outline-danger me-2" disabled={busy || !selectedFile}
                 onClick={() => handleRemoveTrack(selectedDirectory, selectedSourceIndex)}>Remove selected MP3</button>
               <button type="button" className="btn btn-sm btn-outline-danger" disabled={busy}
