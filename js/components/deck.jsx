@@ -172,10 +172,18 @@ const Deck = ({
         created.destroy();
         return;
       }
+      try {
+        treble.disconnect(analyser);
+        treble.connect(created.input);
+        created.output.connect(analyser);
+      } catch (error) {
+        try { treble.disconnect(created.input); } catch (disconnectError) { /* The rack was not inserted. */ }
+        try { created.output.disconnect(analyser); } catch (disconnectError) { /* The rack was not inserted. */ }
+        try { treble.connect(analyser); } catch (connectError) { /* The old graph was already replaced. */ }
+        created.destroy();
+        throw error;
+      }
       rack = created;
-      treble.disconnect(analyser);
-      treble.connect(rack.input);
-      rack.output.connect(analyser);
       nodes.fxRack = rack;
       setFxRack(rack);
     }).catch(error => console.error(`Could not initialize Deck ${name} FX:`, error));
@@ -185,6 +193,9 @@ const Deck = ({
       if (!rack) return;
       try { treble.disconnect(rack.input); } catch (error) { /* Already detached with the old deck graph. */ }
       try { rack.output.disconnect(analyser); } catch (error) { /* Already detached with the old deck graph. */ }
+      if (nodesRef.current.analyser === analyser) {
+        try { treble.connect(analyser); } catch (error) { /* The active graph was replaced. */ }
+      }
       rack.destroy();
       if (nodes.fxRack === rack) nodes.fxRack = null;
     };

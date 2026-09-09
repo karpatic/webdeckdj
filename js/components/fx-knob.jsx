@@ -15,7 +15,10 @@ const FxKnob = ({ deck, slot, rack, beatAvailable }) => {
   const [effectIndex, setEffectIndex] = React.useState(0);
   const [strength, setStrength] = React.useState(0);
   const effect = EFFECTS[effectIndex];
-  const beatgridUnavailable = effect.engine === 'Beat Repeat' && !beatAvailable;
+  let beatgridUnavailable = false;
+  if (effect.engine === 'Beat Repeat') {
+    beatgridUnavailable = !beatAvailable || !rack || !rack.hasWorklet;
+  }
 
   React.useEffect(() => {
     if (!rack) return;
@@ -34,11 +37,13 @@ const FxKnob = ({ deck, slot, rack, beatAvailable }) => {
       if (rack) rack.setStrength(slot, value / 100);
     }
   };
-  const display = mode === 'select'
-    ? 'Select · ' + effect.label + ' · ' + strength + '%' + (beatgridUnavailable ? ' unavailable' : '')
-    : 'Strength · ' + effect.label + ' · ' + strength + '%' + (beatgridUnavailable ? ' unavailable' : '');
-  const name = 'Deck ' + deck + ' FX ' + (slot + 1) + ', ' + display +
-    '. Click, Enter, or Space to switch ' + (mode === 'select' ? 'to strength' : 'to effect selection') + ' mode.';
+  const displayMode = mode === 'select' ? 'Select' : 'Strength';
+  const availability = beatgridUnavailable ? ' unavailable' : '';
+  const nextMode = mode === 'select' ? 'to strength' : 'to effect selection';
+  const fxNumber = slot + 1;
+  const display = displayMode + ' · ' + effect.label + ' · ' + strength + '%' + availability;
+  const name = 'Deck ' + deck + ' FX ' + fxNumber + ', ' + display +
+    '. Click, Enter, or Space to switch ' + nextMode + ' mode.';
 
   return (
     <RotaryControl

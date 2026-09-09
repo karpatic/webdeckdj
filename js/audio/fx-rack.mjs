@@ -218,6 +218,7 @@ export async function createDeckFxRack(context) {
   return {
     input: slots[0].input,
     output: slots[1].output,
+    hasWorklet,
     select(slot, effect) { if (slots[slot]) slots[slot].select(effect); },
     setStrength(slot, value) { if (slots[slot]) slots[slot].setStrength(value); },
     setBeat(beat) { slots.forEach(item => item.setBeat(beat)); },
