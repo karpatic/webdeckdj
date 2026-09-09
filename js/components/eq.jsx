@@ -7,7 +7,7 @@ const formatSignedValue = (value, suffix) => {
   return `${value > 0 ? "+" : ""}${displayValue}${suffix}`;
 };
 
-const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, onPitchAdjust, volume, onVolumeChange, syncControl, timeline, scrollPreview, midiEQRef, midiFxRef, fxRack, beatAvailable, globalFxRack, globalBeatAvailable, globalBeatReference }) => {
+const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, onPitchAdjust, volume, onVolumeChange, syncControl, timeline, scrollPreview, midiEQRef, midiFxRef, fxRack, beatAvailable }) => {
   const [eq, setEq] = React.useState({ bass: 0, mid: 0, treble: 0 });
   const [killed, setKilled] = React.useState({ bass: false, mid: false, treble: false });
 
@@ -100,12 +100,8 @@ const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, 
             <div className="deck-bpm-control">{bpmControl}</div>
           </div>
           <div className="deck-fx-knobs mb-1">
-            <FxKnob deck={name} slot={0} trackRack={fxRack} trackBeatAvailable={beatAvailable}
-              globalRack={globalFxRack} globalSlot={name === 'A' ? 0 : 2}
-              globalBeatAvailable={globalBeatAvailable} globalBeatReference={globalBeatReference} midiFxRef={midiFxRef} />
-            <FxKnob deck={name} slot={1} trackRack={fxRack} trackBeatAvailable={beatAvailable}
-              globalRack={globalFxRack} globalSlot={name === 'A' ? 1 : 3}
-              globalBeatAvailable={globalBeatAvailable} globalBeatReference={globalBeatReference} midiFxRef={midiFxRef} />
+            <FxKnob deck={name} slot={0} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} />
+            <FxKnob deck={name} slot={1} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} />
           </div>
           {['treble', 'mid', 'bass'].map((band) => (
             <div className="mb-1" key={band}>

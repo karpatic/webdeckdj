@@ -10,47 +10,31 @@ const EFFECTS = [
   { label: 'Beatgrid', engine: 'Beat Repeat' }
 ];
 
-const FxKnob = ({ deck, slot, trackRack, trackBeatAvailable, globalRack, globalSlot, globalBeatAvailable, globalBeatReference, midiFxRef }) => {
+const FxKnob = ({ deck, slot, rack, beatAvailable, midiFxRef }) => {
   const [mode, setMode] = React.useState('select');
   const [effectIndex, setEffectIndex] = React.useState(0);
   const [strength, setStrength] = React.useState(0);
-  const [route, setRoute] = React.useState('track');
   const effect = EFFECTS[effectIndex];
-  const rack = route === 'track' ? trackRack : globalRack;
-  const beatAvailable = route === 'track' ? trackBeatAvailable : globalBeatAvailable;
   let beatgridUnavailable = false;
   if (effect.engine === 'Beat Repeat') {
     beatgridUnavailable = !beatAvailable || !rack || !rack.hasWorklet;
   }
 
   React.useEffect(() => {
-    if (!trackRack) return;
-    trackRack.select(slot, effect.engine);
-    trackRack.setStrength(slot, route === 'track' ? strength / 100 : 0);
-  }, [trackRack, slot]);
-
-  React.useEffect(() => {
-    if (!globalRack) return;
-    globalRack.select(globalSlot, effect.engine);
-    globalRack.setStrength(globalSlot, route === 'global' ? strength / 100 : 0);
-  }, [globalRack, globalSlot]);
-
-  React.useEffect(() => {
-    if (trackRack) trackRack.setStrength(slot, route === 'track' ? strength / 100 : 0);
-    if (globalRack) globalRack.setStrength(globalSlot, route === 'global' ? strength / 100 : 0);
-  }, [route]);
+    if (!rack) return;
+    rack.select(slot, effect.engine);
+    rack.setStrength(slot, strength / 100);
+  }, [rack, slot]);
 
   const changeValue = value => {
     if (mode === 'select') {
       const nextIndex = Math.max(0, Math.min(EFFECTS.length - 1, value));
       setEffectIndex(nextIndex);
       setStrength(0);
-      if (trackRack) trackRack.select(slot, EFFECTS[nextIndex].engine);
-      if (globalRack) globalRack.select(globalSlot, EFFECTS[nextIndex].engine);
+      if (rack) rack.select(slot, EFFECTS[nextIndex].engine);
     } else {
       setStrength(value);
-      if (trackRack) trackRack.setStrength(slot, route === 'track' ? value / 100 : 0);
-      if (globalRack) globalRack.setStrength(globalSlot, route === 'global' ? value / 100 : 0);
+      if (rack) rack.setStrength(slot, value / 100);
     }
   };
   const toggleMode = () => setMode(current => current === 'select' ? 'strength' : 'select');
@@ -84,20 +68,11 @@ const FxKnob = ({ deck, slot, trackRack, trackBeatAvailable, globalRack, globalS
   const nextMode = mode === 'select' ? 'to strength' : 'to effect selection';
   const fxNumber = slot + 1;
   const display = mode === 'select' ? effect.label + ' · ' + strength + '%' + availability : displayMode + ' · ' + effect.label + ' · ' + strength + '%' + availability;
-  const routeHelp = route === 'global' ? ' Global mix using ' + globalBeatReference + ' for Beatgrid timing.' : ' Track path.';
-  const name = 'Deck ' + deck + ' FX ' + fxNumber + ', ' + display + '.' + routeHelp +
+  const name = 'Deck ' + deck + ' FX ' + fxNumber + ', ' + display +
     '. Click, Enter, or Space to switch ' + nextMode + ' mode.';
 
-  const toggleRoute = () => {
-    const nextRoute = route === 'track' ? 'global' : 'track';
-    if (trackRack) trackRack.setStrength(slot, nextRoute === 'track' ? strength / 100 : 0);
-    if (globalRack) globalRack.setStrength(globalSlot, nextRoute === 'global' ? strength / 100 : 0);
-    setRoute(nextRoute);
-  };
-
   return (
-    <div className="fx-slot-control">
-      <RotaryControl
+    <RotaryControl
         id={`deck-${deck}-fx-${slot + 1}`}
         label={`FX ${slot + 1}`}
         min={mode === 'select' ? 0 : 0}
@@ -112,13 +87,7 @@ const FxKnob = ({ deck, slot, trackRack, trackBeatAvailable, globalRack, globalS
         accessibleName={name}
         title="Turn or use arrows for the displayed mode; click, Enter, or Space switches mode. Selecting an effect resets strength to zero."
         formatValue={() => display}
-      />
-      <button type="button" className="btn btn-sm btn-outline-info fx-route-toggle"
-        aria-label={`Deck ${deck} FX ${fxNumber} route: ${route === 'track' ? 'Track' : 'Global mix'}`}
-        aria-pressed={route === 'global'} disabled={!trackRack || !globalRack}
-        title={route === 'track' ? 'Route this slot after the combined Deck A/B mix' : 'Route this slot back to Deck ' + deck}
-        onClick={toggleRoute}>{route === 'track' ? 'Track' : 'Global'}</button>
-    </div>
+    />
   );
 };
 

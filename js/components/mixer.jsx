@@ -4,13 +4,28 @@ import RotaryControl from "./rotary.jsx";
 
 const emptyMarkers = (trackUrl) => ({ trackUrl, cue: 0, in: null, out: null, active: false, kind: null, autoStartIndex: null, message: "" });
 
+const SampleKnob = ({ channel, samples, control }) => {
+  const selectedIndex = Math.max(0, samples.findIndex(sample => sample.id === control.selectedId));
+  const selectedSample = samples[selectedIndex];
+  return (
+    <div className="shared-sample-control">
+      <RotaryControl
+        id={`mixer-samples-${channel}`} label={`Samples${channel}`} min={0} max={Math.max(0, samples.length - 1)} step={1}
+        value={selectedIndex} singleTap={true} disabled={!selectedSample}
+        onChange={(index) => { if (samples[index]) control.select(samples[index].id); }}
+        onTap={() => { if (selectedSample) control.trigger(selectedSample.id); }}
+        accessibleName={selectedSample ? `Play Samples${channel} clip ${selectedSample.label}; arrow keys select sample` : `Samples${channel} — import a Samples MP3 directory`}
+        title="Turn / arrow keys select a sample; stationary click, Enter or Space restarts the selected clip"
+        formatValue={() => selectedSample ? selectedSample.label : 'Import Samples'}
+      />
+      <small id={`samples-${channel}-playback-status`} role="status">{control.error}</small>
+    </div>
+  );
+};
+
 const Mixer = ({ 
   fxSamples,
-  selectedFxId,
-  onSelectFx,
-  onPreviewFx,
-  fxPlayingId,
-  fxError,
+  sampleChannels,
   settings,
   leftTrack, 
   rightTrack,
@@ -30,7 +45,6 @@ const Mixer = ({
   
   // Audio context
   const [audioContext, setAudioContext] = React.useState(null);
-  const [globalFxRack, setGlobalFxRack] = React.useState(null);
   
   // Gain nodes for crossfader control
   const [leftGainNode, setLeftGainNode] = React.useState(null);
@@ -130,48 +144,6 @@ const Mixer = ({
   const handleRightAnalysisChange = React.useCallback((result) => setRightAnalysis(result), []);
   const handleLeftBeatMapChange = React.useCallback((result, downbeatIndex) => setLeftBeatMap({ result, downbeatIndex }), []);
   const handleRightBeatMapChange = React.useCallback((result, downbeatIndex) => setRightBeatMap({ result, downbeatIndex }), []);
-
-  // Global Beatgrid uses one explicit timing source: Deck A when usable, otherwise Deck B.
-  let globalBeatDeck = null;
-  let globalBeatResult = null;
-  let globalBeatAnchor = null;
-  let globalBeatRate = 0;
-  const leftBeatResult = leftBeatMap && leftBeatMap.result;
-  const leftBeatAnchor = leftBeatResult && leftBeatResult.ticks && leftBeatResult.ticks[leftBeatMap.downbeatIndex];
-  const leftRate = leftAudioRef.current ? Number(leftAudioRef.current.playbackRate) : 0;
-  const leftTimingUsable = Boolean(leftBeatResult && Number.isFinite(leftBeatResult.bpm) && leftBeatResult.bpm > 0 && Number.isFinite(leftBeatAnchor) && leftRate > 0);
-  const rightBeatResult = rightBeatMap && rightBeatMap.result;
-  const rightBeatAnchor = rightBeatResult && rightBeatResult.ticks && rightBeatResult.ticks[rightBeatMap.downbeatIndex];
-  const rightRate = rightAudioRef.current ? Number(rightAudioRef.current.playbackRate) : 0;
-  const rightTimingUsable = Boolean(rightBeatResult && Number.isFinite(rightBeatResult.bpm) && rightBeatResult.bpm > 0 && Number.isFinite(rightBeatAnchor) && rightRate > 0);
-  if (leftTimingUsable) {
-    globalBeatDeck = 'A';
-    globalBeatResult = leftBeatResult;
-    globalBeatAnchor = leftBeatAnchor;
-    globalBeatRate = leftRate;
-  } else if (rightTimingUsable) {
-    globalBeatDeck = 'B';
-    globalBeatResult = rightBeatResult;
-    globalBeatAnchor = rightBeatAnchor;
-    globalBeatRate = rightRate;
-  }
-  const globalBeatAvailable = Boolean(globalFxRack && globalFxRack.hasWorklet && globalBeatDeck);
-  const globalBeatReference = globalBeatDeck ? 'Deck ' + globalBeatDeck : 'no available measured deck';
-  React.useEffect(() => {
-    if (!globalFxRack) return;
-    const sourceAudio = globalBeatDeck === 'A' ? leftAudioRef.current : rightAudioRef.current;
-    if (!globalBeatAvailable || !sourceAudio) {
-      globalFxRack.setBeat(null);
-      return;
-    }
-    globalFxRack.setBeat({
-      bpm: globalBeatResult.bpm * globalBeatRate,
-      sourceBpm: globalBeatResult.bpm,
-      rate: globalBeatRate,
-      anchor: globalBeatAnchor,
-      mediaTime: sourceAudio.currentTime
-    });
-  }, [globalFxRack, globalBeatAvailable, globalBeatDeck, globalBeatResult, globalBeatAnchor, globalBeatRate, leftProgress.currentTime, rightProgress.currentTime]);
 
   React.useEffect(() => {
     if (leftAudioRef.current) window.dj.audio.applyPitchBend(leftAudioRef.current, leftPitch);
@@ -354,49 +326,6 @@ const Mixer = ({
     initializeAudio();
     return () => {};
   }, []);
-
-  // One true master path. Deck gains sum into this four-slot serial rack; Samples never enter it.
-  React.useEffect(() => {
-    if (!audioContext) return undefined;
-    let cancelled = false;
-    let rack = null;
-    window.webDeckFxReady.then(module => module.createMasterFxRack(audioContext)).then(created => {
-      if (cancelled) {
-        created.destroy();
-        return;
-      }
-      created.output.connect(audioContext.destination);
-      rack = created;
-      setGlobalFxRack(created);
-    }).catch(error => console.error('Could not initialize Global FX:', error));
-    return () => {
-      cancelled = true;
-      setGlobalFxRack(current => current === rack ? null : current);
-      if (!rack) return;
-      try { rack.output.disconnect(audioContext.destination); } catch (error) { /* Already detached. */ }
-      rack.destroy();
-    };
-  }, [audioContext]);
-
-  const routeDeckGainToMaster = React.useCallback((gain) => {
-    if (!gain || !globalFxRack || !audioContext) return undefined;
-    try {
-      gain.disconnect(audioContext.destination);
-      gain.connect(globalFxRack.input);
-    } catch (error) {
-      try { gain.disconnect(globalFxRack.input); } catch (disconnectError) { /* Not connected. */ }
-      try { gain.connect(audioContext.destination); } catch (connectError) { /* Existing direct path remains. */ }
-      console.error('Could not route a deck through Global FX:', error);
-      return undefined;
-    }
-    return () => {
-      try { gain.disconnect(globalFxRack.input); } catch (error) { /* Already detached. */ }
-      try { gain.connect(audioContext.destination); } catch (error) { /* Already restored. */ }
-    };
-  }, [globalFxRack, audioContext]);
-
-  React.useEffect(() => routeDeckGainToMaster(leftGainNode), [leftGainNode, routeDeckGainToMaster]);
-  React.useEffect(() => routeDeckGainToMaster(rightGainNode), [rightGainNode, routeDeckGainToMaster]);
 
   // Store gain nodes in our ref object for direct access
   React.useEffect(() => {
@@ -854,8 +783,6 @@ const Mixer = ({
     maximumPitch: 8
   });
 
-  const selectedFxIndex = Math.max(0, fxSamples.findIndex(sample => sample.id === selectedFxId));
-  const selectedFx = fxSamples[selectedFxIndex];
   const leftReady = Boolean(leftTrack) && leftProgress.duration > 0;
   const rightReady = Boolean(rightTrack) && rightProgress.duration > 0;
   const leftAutoLoopAvailability = getAutoLoopAvailability('left', autoLoopBeats.left, null);
@@ -903,6 +830,19 @@ const Mixer = ({
       }
       if (action.type === 'load-track') {
         if (crateMidiRef && crateMidiRef.current) crateMidiRef.current.loadSelection(action.deck);
+        return;
+      }
+      if (action.type === 'sampleMove' || action.type === 'sampleTrigger') {
+        const control = sampleChannels[action.channel];
+        if (!control) return;
+        const currentIndex = Math.max(0, fxSamples.findIndex(sample => sample.id === control.selectedId));
+        if (action.type === 'sampleMove') {
+          const nextIndex = Math.max(0, Math.min(fxSamples.length - 1, currentIndex + action.delta));
+          if (fxSamples[nextIndex]) control.select(fxSamples[nextIndex].id);
+        } else {
+          const sample = fxSamples[currentIndex];
+          if (sample) control.trigger(sample.id);
+        }
         return;
       }
       const deck = action.deck;
@@ -1017,9 +957,6 @@ const Mixer = ({
             updateProgress={(currentTime, duration) => updateProgress("left", currentTime, duration)}
             formatTime={formatTime}
             onAnalyserCreated={handleLeftAnalyserCreated}
-            globalFxRack={globalFxRack}
-            globalBeatAvailable={globalBeatAvailable}
-            globalBeatReference={globalBeatReference}
           />
         </div>
 
@@ -1054,9 +991,6 @@ const Mixer = ({
             updateProgress={(currentTime, duration) => updateProgress("right", currentTime, duration)}
             formatTime={formatTime}
             onAnalyserCreated={handleRightAnalyserCreated}
-            globalFxRack={globalFxRack}
-            globalBeatAvailable={globalBeatAvailable}
-            globalBeatReference={globalBeatReference}
           />
         </div>
       </div>
@@ -1079,16 +1013,8 @@ const Mixer = ({
             {leftMarkers.message && <small role="status">{leftMarkers.message}</small>}
           </div>
           <div className="shared-fx-control">
-            <RotaryControl
-              id="mixer-fx" label="Samples" min={0} max={Math.max(0, fxSamples.length - 1)} step={1}
-              value={selectedFxIndex} singleTap={true} disabled={!selectedFx}
-              onChange={(index) => { if (fxSamples[index]) onSelectFx(fxSamples[index].id); }}
-              onTap={() => { if (selectedFx) onPreviewFx(selectedFx.id); }}
-              accessibleName={selectedFx ? `Play sample ${selectedFx.label}; arrow keys select sample` : 'Samples — import a Samples MP3 directory'}
-              title="Turn / arrow keys select a sample; stationary click, Enter or Space restarts the selected clip"
-              formatValue={() => selectedFx ? selectedFx.label : 'Import Samples'}
-            />
-            <small id="fx-playback-status" role="status">{fxError}</small>
+            <SampleKnob channel={1} samples={fxSamples} control={sampleChannels[0]} />
+            <SampleKnob channel={2} samples={fxSamples} control={sampleChannels[1]} />
           </div>
           <div className="loop-buttons loop-buttons-B">
             <button id="deck-B-loop-in" type="button" className="btn btn-sm btn-outline-light" disabled={!rightReady} aria-label="Deck B Loop In" title="Save Deck B loop start; clears the previous loop" onClick={() => transportAction('right', 'in')}>In B</button>

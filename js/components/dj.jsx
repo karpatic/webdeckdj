@@ -27,6 +27,78 @@ const readSettings = () => {
   return settings;
 };
 
+const useSampleChannel = (samples) => {
+  const [selectedId, select] = React.useState(null);
+  const [playingId, setPlayingId] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const audioRef = React.useRef(null);
+  const playbackRef = React.useRef({ id: null, url: null, token: 0 });
+
+  const stop = React.useCallback(() => {
+    const playback = playbackRef.current;
+    const audio = audioRef.current;
+    playback.token += 1;
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+    }
+    if (playback.url) URL.revokeObjectURL(playback.url);
+    playback.id = null;
+    playback.url = null;
+    setPlayingId(null);
+  }, []);
+
+  React.useEffect(() => {
+    select(current => samples.some(sample => sample.id === current)
+      ? current
+      : samples.length ? samples[0].id : null);
+    const activeId = playbackRef.current.id;
+    if (activeId && !samples.some(sample => sample.id === activeId)) stop();
+  }, [samples, stop]);
+
+  React.useEffect(() => () => stop(), [stop]);
+
+  const trigger = React.useCallback((id) => {
+    const sample = samples.find(item => item.id === id);
+    stop();
+    setError("");
+    const validFile = sample && sample.file instanceof Blob;
+    if (!validFile || !sample.file.size) {
+      setError("This sample is unavailable. Import its directory again.");
+      return;
+    }
+    select(id);
+    const audio = audioRef.current;
+    if (!audio) return;
+    const playback = playbackRef.current;
+    const token = playback.token;
+    playback.id = id;
+    playback.url = URL.createObjectURL(sample.file);
+    audio.volume = 0.35;
+    audio.src = playback.url;
+    audio.play().then(() => {
+      if (playbackRef.current.token === token) setPlayingId(id);
+    }).catch(() => {
+      if (playbackRef.current.token !== token) return;
+      stop();
+      setError("Sample could not play. Check the MP3 file and try again.");
+    });
+  }, [samples, stop]);
+
+  const audioProps = {
+    ref: audioRef,
+    preload: "none",
+    onEnded: stop,
+    onError: () => {
+      if (!playbackRef.current.id) return;
+      stop();
+      setError("Sample file is missing or cannot be decoded. Import a playable MP3.");
+    }
+  };
+  return { selectedId, playingId, error, select, trigger, audioProps };
+};
+
 const SharedHelp = ({ midiApi, midiStatus }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [isPinned, setIsPinned] = React.useState(false);
@@ -113,7 +185,7 @@ const SharedHelp = ({ midiApi, midiStatus }) => {
           {midiStatus.inputs.map(input => <button key={input.id} type="button" className="btn btn-sm btn-outline-info me-1 mb-1"
             onClick={() => midiApi && midiApi.connect({ inputId: input.id })}>{input.name}</button>)}
         </div>}
-        <p className="small mb-2">Gain knobs control pitch/speed (center is normal); physical pitch sliders are unused. Pitch-bend −/+ buttons persistently fine-adjust that deck by 0.1 percentage points per press. Center encoder browses folders and tracks. Directory returns to folders; Load buttons load the selected track into Deck A or B without starting playback.</p>
+        <p className="small mb-2">Gain knobs control pitch/speed (center is normal); physical pitch sliders are unused. Pitch-bend −/+ buttons persistently fine-adjust that deck by 0.1 percentage points per press. Each side's Fine Pitch knob selects Samples1 or Samples2, and its Tap button restarts that selected sample. Center encoder browses folders and tracks. Directory returns to folders; Load buttons load the selected track into Deck A or B without starting playback.</p>
         <p className="small mb-2">Note 79 provisionally enters the selected folder. Its physical center-push assignment is not verified; click a folder to enter it.</p>
         <img className="midi-guide-image" src="./assets/midi/numark-total-control/numark-total-control-guide.svg" alt="Numark Total Control mapping guide" />
       </div>
@@ -133,8 +205,8 @@ const SharedHelp = ({ midiApi, midiStatus }) => {
         <p>The full-song overview runs left (start) to right (end). Click or tap to seek; use Left/Right to move five seconds, or Home/End. Seeking keeps the current play/pause state. The white line is the playhead; brighter bars have been played. Each vertical waveform preview runs top to bottom and scrolls upward during playback. Its corner button switches between 35 seconds (five above the fixed playhead, thirty below) and 8 seconds (two above, six below). Waveforms reuse the full-file detailed timeline data; measured beat ticks sit at the edge.</p>
         <p>Each loaded track is analyzed in full locally by the pinned Degara worker. BPM follows playback speed; Sync uses measured beat ticks, not an invented grid. The gear starts or terminates automatic analysis work for both decks.</p>
         <p>Set Cue saves this deck's current position; Cue returns there and pauses (initially the start). Loading another track clears that deck's cue and loop. Loop In saves the start; Loop Out must be later, enables the loop, and a second press exits. Auto Loop starts on a measured beat; its arrow cycles 4, 8, and 16 measured beats. Missing or insufficient measured ticks disables/rejects it. Seeking outside an active loop exits it and keeps play/pause unchanged. Loop timing uses media events and a playing-only deadline, not sample-accurate audio scheduling.</p>
-        <p>Turn Samples or use arrow keys to select an imported clip; click, Enter or Space restarts it on an independent, moderate-volume channel. Select is silent; Preview plays. Add Samples MP3 Directory keeps samples separate from music. No clip plays automatically.</p>
-        <p>Each deck has two independent FX slots. Track keeps a slot in that deck's serial rack; Global moves that slot to the real combined Deck A/B master rack, ordered A1, A2, B1, B2. Samples remain on their separate path. Turn a knob to select Filter, Echo, Reverb, Flanger, Phaser, or Beatgrid; click, Enter, or Space to switch to strength, then repeat to return to selection. Routing preserves the slot selection, strength, and mode. Selecting an effect resets that slot to dry. Beatgrid is a buffered beat-repeat aligned to measured timing; Global Beatgrid explicitly uses Deck A when its map is usable, otherwise Deck B, and stays unavailable when neither is usable.</p>
+        <p>Samples1 and Samples2 share the imported sample bank but select and play independently, so both can overlap. Turn either knob or use arrow keys to select silently; click, Enter or Space restarts only that channel. Select Sample and Preview in the crate continue to operate Samples1. Add Samples MP3 Directory keeps samples separate from music. No clip plays automatically.</p>
+        <p>Each deck has two independent, serial audio FX slots. Turn a knob to select Filter, Echo, Reverb, Flanger, Phaser, or Beatgrid; click, Enter, or Space to switch to strength, then repeat to return to selection. Selecting an effect resets that slot to dry. Beatgrid is a buffered beat-repeat aligned to the deck's measured map and chosen downbeat; it stays unavailable until measured BPM exists.</p>
         <p>Click Bass, Mid or Treble once (or Enter/Space) to toggle band kill. The selected rotary gain is retained; dragging or arrow keys adjust it without toggling kill. Kill applies -40 dB to the existing shelf/peak filter, not perfect isolated-band silence or a master mute.</p>
         <p className="mb-1">Frequency color shows the strongest band:</p>
         <ul>
@@ -177,64 +249,8 @@ const App = () => {
   const [midiApi, setMidiApi] = React.useState(null);
   const [midiStatus, setMidiStatus] = React.useState({ code: 'loading', message: 'Loading MIDI…' });
   const [fxSamples, setFxSamples] = React.useState([]);
-  const [selectedFxId, setSelectedFxId] = React.useState(null);
-  const [fxPlayingId, setFxPlayingId] = React.useState(null);
-  const [fxError, setFxError] = React.useState("");
-  const fxAudioRef = React.useRef(null);
-  const fxPlaybackRef = React.useRef({ id: null, url: null, token: 0 });
-
-  const stopFx = React.useCallback(() => {
-    const playback = fxPlaybackRef.current;
-    const audio = fxAudioRef.current;
-    playback.token += 1;
-    if (audio) {
-      audio.pause();
-      audio.removeAttribute('src');
-      audio.load();
-    }
-    if (playback.url) URL.revokeObjectURL(playback.url);
-    playback.id = null;
-    playback.url = null;
-    setFxPlayingId(null);
-  }, []);
-
-  React.useEffect(() => {
-    setSelectedFxId(current => {
-      if (fxSamples.some(sample => sample.id === current)) return current;
-      return fxSamples.length ? fxSamples[0].id : null;
-    });
-    const activeId = fxPlaybackRef.current.id;
-    if (activeId && !fxSamples.some(sample => sample.id === activeId)) stopFx();
-  }, [fxSamples, stopFx]);
-
-  React.useEffect(() => () => stopFx(), [stopFx]);
-
-  const previewFx = (id) => {
-    const sample = fxSamples.find(item => item.id === id);
-    stopFx();
-    setFxError("");
-    const validFile = sample && sample.file instanceof Blob;
-    if (!validFile || !sample.file.size) {
-      setFxError("This sample is unavailable. Import its directory again.");
-      return;
-    }
-    setSelectedFxId(id);
-    const audio = fxAudioRef.current;
-    if (!audio) return;
-    const playback = fxPlaybackRef.current;
-    const token = playback.token;
-    playback.id = id;
-    playback.url = URL.createObjectURL(sample.file);
-    audio.volume = 0.35;
-    audio.src = playback.url;
-    audio.play().then(() => {
-      if (fxPlaybackRef.current.token === token) setFxPlayingId(id);
-    }).catch(() => {
-      if (fxPlaybackRef.current.token !== token) return;
-      stopFx();
-      setFxError("Sample could not play. Check the MP3 file and try Preview again.");
-    });
-  };
+  const samples1 = useSampleChannel(fxSamples);
+  const samples2 = useSampleChannel(fxSamples);
   
   // Audio context for potential visualizers
   const [audioContext, setAudioContext] = React.useState(null);
@@ -290,11 +306,8 @@ const App = () => {
 
   return (
     <div className="dj-app">
-      <audio id="dj-fx-audio" ref={fxAudioRef} preload="none" onEnded={stopFx} onError={() => {
-        if (!fxPlaybackRef.current.id) return;
-        stopFx();
-        setFxError("Sample file is missing or cannot be decoded. Import a playable MP3.");
-      }} />
+      <audio id="dj-samples-1-audio" {...samples1.audioProps} />
+      <audio id="dj-samples-2-audio" {...samples2.audioProps} />
       <div className="container-fluid p-0 m-0"> 
         <div className="card mb-4 bg-transparent">
           <div
@@ -303,11 +316,7 @@ const App = () => {
           >
             <Mixer 
               fxSamples={fxSamples}
-              selectedFxId={selectedFxId}
-              onSelectFx={setSelectedFxId}
-              onPreviewFx={previewFx}
-              fxPlayingId={fxPlayingId}
-              fxError={fxError}
+              sampleChannels={[samples1, samples2]}
               settings={settings}
               leftTrack={leftTrack}
               rightTrack={rightTrack}
@@ -320,9 +329,9 @@ const App = () => {
 
             <Crate 
               onFxSamplesChange={setFxSamples}
-              selectedFxId={selectedFxId}
-              onSelectFx={setSelectedFxId}
-              onPreviewFx={previewFx}
+              selectedFxId={samples1.selectedId}
+              onSelectFx={samples1.select}
+              onPreviewFx={samples1.trigger}
               onSelectLeftTrack={handleSelectLeftTrack}
               onSelectRightTrack={handleSelectRightTrack}
                onRegisterMidiActions={registerCrateMidiActions}

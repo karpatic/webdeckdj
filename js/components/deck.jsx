@@ -28,10 +28,7 @@ const Deck = ({
   formatTime,
   gainNode,
   setGainNode,
-  onAnalyserCreated,
-  globalFxRack,
-  globalBeatAvailable,
-  globalBeatReference
+  onAnalyserCreated
 }) => {
   // Audio processing nodes
   const [sourceNode, setSourceNode] = React.useState(null); 
@@ -289,9 +286,6 @@ const Deck = ({
                 midiFxRef={midiFxRef}
                 fxRack={fxRack}
                 beatAvailable={beatAvailable}
-                globalFxRack={globalFxRack}
-                globalBeatAvailable={globalBeatAvailable}
-                globalBeatReference={globalBeatReference}
                 syncControl={syncControl}
                 timeline={(
                   <Track
