@@ -86,7 +86,15 @@ const Mixer = ({
   const [autoLoopBeats, setAutoLoopBeats] = React.useState({ left: 4, right: 4 });
   const [syncStatus, setSyncStatus] = React.useState('');
   const syncRef = React.useRef({ token: 0, rafId: null });
+  const loopSeekRef = React.useRef({ left: null, right: null });
   const manualActionVersionRef = React.useRef({ left: 0, right: 0 });
+
+  const seekForLoop = (deck, audio, target) => {
+    if (!audio || !Number.isFinite(target)) return;
+    if (Math.abs(audio.currentTime - target) < 0.001) return;
+    loopSeekRef.current[deck] = { audio: audio, target: target };
+    audio.currentTime = target;
+  };
 
   const cancelScheduledSync = React.useCallback((message) => {
     const current = syncRef.current;
@@ -178,7 +186,7 @@ const Mixer = ({
     } else {
       setMarkers(current => ({ ...current, out: position, active: true, kind: 'manual', autoStartIndex: null, message: '' }));
       // Capturing Out starts at In without changing the paused state.
-      audio.currentTime = markers.in;
+      seekForLoop(deck, audio, markers.in);
     }
   };
 
@@ -216,7 +224,7 @@ const Mixer = ({
     }
     const plan = availability.plan;
     setMarkers(current => ({ ...current, in: plan.start, out: plan.end, active: true, kind: 'auto', autoStartIndex: plan.startIndex, message: '' }));
-    audio.currentTime = plan.start;
+    seekForLoop(deck, audio, plan.start);
   };
 
   const cycleAutoLoop = (deck) => {
@@ -238,7 +246,9 @@ const Mixer = ({
       setMarkers(current => ({ ...current, in: plan.start, out: plan.end, autoStartIndex: plan.startIndex, message: '' }));
       let outside = false;
       if (audio) outside = audio.currentTime < plan.start || audio.currentTime >= plan.end;
-      if (outside) audio.currentTime = plan.start;
+      if (outside) {
+        seekForLoop(deck, audio, plan.start);
+      }
     }
     setAutoLoopBeats(current => {
       const next = { ...current };
@@ -252,10 +262,10 @@ const Mixer = ({
   React.useEffect(() => {
     const cleanups = [];
     const decks = [
-      { audio: leftAudioRef.current, track: leftTrack, markers: leftMarkers, setMarkers: setLeftMarkers },
-      { audio: rightAudioRef.current, track: rightTrack, markers: rightMarkers, setMarkers: setRightMarkers }
+      { deck: 'left', audio: leftAudioRef.current, track: leftTrack, markers: leftMarkers, setMarkers: setLeftMarkers },
+      { deck: 'right', audio: rightAudioRef.current, track: rightTrack, markers: rightMarkers, setMarkers: setRightMarkers }
     ];
-    decks.forEach(({ audio, track, markers, setMarkers }) => {
+    decks.forEach(({ deck, audio, track, markers, setMarkers }) => {
       if (!audio || !markers.active || markers.trackUrl !== track?.url) return;
       let timer = null;
       let disposed = false;
@@ -264,6 +274,7 @@ const Mixer = ({
         if (disposed) return;
         clearDeadline();
         disposed = true;
+        if (loopSeekRef.current[deck]?.audio === audio) loopSeekRef.current[deck] = null;
         setMarkers(current => ({ ...current, active: false, kind: null, autoStartIndex: null }));
       };
       const syncLoop = () => {
@@ -276,7 +287,7 @@ const Mixer = ({
         if (audio.currentTime >= end) {
           const wasEnded = audio.ended;
           if (audio.paused && !wasEnded) return;
-          audio.currentTime = markers.in;
+          seekForLoop(deck, audio, markers.in);
           if (wasEnded) audio.play().catch(exitLoop);
           return; // seeked reschedules, preserving all existing seek listeners.
         }
@@ -287,19 +298,32 @@ const Mixer = ({
       };
       const onSeeking = () => {
         clearDeadline();
+        const pending = loopSeekRef.current[deck];
+        if (pending && pending.audio === audio) return;
         const end = Math.min(markers.out, audio.duration);
         const outside = audio.currentTime < markers.in || audio.currentTime >= end;
         if (outside) exitLoop();
       };
-      const events = ['play', 'pause', 'timeupdate', 'seeked', 'ratechange', 'durationchange', 'ended'];
+      const onSeeked = () => {
+        const pending = loopSeekRef.current[deck];
+        if (pending && pending.audio === audio) {
+          loopSeekRef.current[deck] = null;
+          const end = Math.min(markers.out, audio.duration);
+          if (pending.target < markers.in || pending.target >= end) return;
+        }
+        syncLoop();
+      };
+      const events = ['play', 'pause', 'timeupdate', 'ratechange', 'durationchange', 'ended'];
       events.forEach(event => audio.addEventListener(event, syncLoop));
       audio.addEventListener('seeking', onSeeking);
+      audio.addEventListener('seeked', onSeeked);
       syncLoop();
       cleanups.push(() => {
         disposed = true;
         clearDeadline();
         events.forEach(event => audio.removeEventListener(event, syncLoop));
         audio.removeEventListener('seeking', onSeeking);
+        audio.removeEventListener('seeked', onSeeked);
       });
     });
     return () => cleanups.forEach(cleanup => cleanup());
