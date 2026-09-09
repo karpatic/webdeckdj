@@ -91,12 +91,12 @@ export function decodeTotalControl(data) {
     const action = controllers.get(number);
     if (!action) return null;
     const midiValue = Math.max(0, Math.min(127, value));
-    if (action.type === 'sampleMove') {
-      // Fine Pitch is two's-complement relative: 1..63 forward, 64..127 backward.
+    if (action.type === 'sampleMove' || action.type === 'fxvalue') {
+      // Fine Pitch and all four FX encoders are two's-complement relative:
+      // 1..63 forward, 64..127 backward, and 0 is stationary.
       const delta = midiValue <= 63 ? midiValue : midiValue - 128;
       return delta ? { ...action, delta } : null;
     }
-    if (action.type === 'fxvalue') return { ...action, value: midiValue };
     if (action.type === 'eqvalue') {
       // Both center bytes are neutral; each half reaches the existing UI limit.
       const centered = midiValue < 63 ? (midiValue - 63) / 63
@@ -137,7 +137,7 @@ export function createTotalControlDispatcher(onAction) {
         if (held.has(key)) return false;
         held.add(key);
       } else {
-        if (action.type === 'browse-move' || action.type === 'sampleMove') {
+        if (action.type === 'browse-move' || action.type === 'sampleMove' || action.type === 'fxvalue') {
           onAction(action);
           return true;
         }
