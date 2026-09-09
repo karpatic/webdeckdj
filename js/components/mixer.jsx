@@ -872,6 +872,7 @@ const Mixer = ({
   const midiRef = React.useRef(null);
   const midiActionRef = React.useRef(null);
   const midiEQRef = React.useRef({ left: null, right: null });
+  const midiFxRef = React.useRef({ left: [null, null], right: [null, null] });
   const [midiStatus, setMidiStatus] = React.useState({ code: 'loading', message: 'Loading MIDI…' });
 
   React.useLayoutEffect(() => {
@@ -912,6 +913,13 @@ const Mixer = ({
       }
       if (action.type === 'eqvalue' || action.type === 'eqkill') {
         const apply = midiEQRef.current[deck];
+        if (apply) apply(action);
+        return;
+      }
+      if (action.type === 'fxvalue' || action.type === 'fxmode') {
+        const slot = action.slot;
+        if (slot !== 0 && slot !== 1) return;
+        const apply = midiFxRef.current[deck][slot];
         if (apply) apply(action);
         return;
       }
@@ -983,6 +991,7 @@ const Mixer = ({
           <Deck
             name="A"
             midiEQRef={midiEQRef}
+            midiFxRef={midiFxRef}
             settings={settings}
             track={leftTrack}
             audioRef={leftAudioRef}
@@ -1019,6 +1028,7 @@ const Mixer = ({
           <Deck
             name="B"
             midiEQRef={midiEQRef}
+            midiFxRef={midiFxRef}
             settings={settings}
             track={rightTrack}
             audioRef={rightAudioRef}

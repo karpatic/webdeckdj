@@ -1,6 +1,6 @@
 // Input assignments: pages/webmidi/controllers/numark-total-control.js:25-42.
 // Status/channel decoding: pages/webmidi/ui.js:51-60. No MIDI output or SysEx.
-// EQ/loop/pitch-step INPUT assignments verified against Mixxx Numark Total Control.midi.xml;
+// EQ/loop/pitch-step/FX INPUT assignments verified against Mixxx and Numark sources;
 // see docs/numark-midi.md for URL/hash. Output/LED assignments are not inputs.
 const notes = new Map([
   [67, { type: 'play', deck: 'left' }],
@@ -23,9 +23,17 @@ const notes = new Map([
   [0x41, { type: 'pitchStep', deck: 'left', delta: -0.1 }],
   [0x42, { type: 'pitchStep', deck: 'left', delta: 0.1 }],
   [0x45, { type: 'pitchStep', deck: 'right', delta: -0.1 }],
-  [0x46, { type: 'pitchStep', deck: 'right', delta: 0.1 }]
+  [0x46, { type: 'pitchStep', deck: 'right', delta: 0.1 }],
+  [0x31, { type: 'fxmode', deck: 'left', slot: 0 }],
+  [0x35, { type: 'fxmode', deck: 'right', slot: 0 }],
+  [0x32, { type: 'fxmode', deck: 'left', slot: 1 }],
+  [0x36, { type: 'fxmode', deck: 'right', slot: 1 }]
 ]);
 const controllers = new Map([
+  [0x00, { type: 'fxvalue', deck: 'left', slot: 0 }],
+  [0x04, { type: 'fxvalue', deck: 'right', slot: 0 }],
+  [0x01, { type: 'fxvalue', deck: 'left', slot: 1 }],
+  [0x05, { type: 'fxvalue', deck: 'right', slot: 1 }],
   [8, { type: 'volume', deck: 'left' }],
   [9, { type: 'volume', deck: 'right' }],
   [10, { type: 'crossfader' }],
@@ -78,6 +86,7 @@ export function decodeTotalControl(data) {
     const action = controllers.get(number);
     if (!action) return null;
     const midiValue = Math.max(0, Math.min(127, value));
+    if (action.type === 'fxvalue') return { ...action, value: midiValue };
     if (action.type === 'eqvalue') {
       // Both center bytes are neutral; each half reaches the existing UI limit.
       const centered = midiValue < 63 ? (midiValue - 63) / 63

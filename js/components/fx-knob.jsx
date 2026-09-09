@@ -10,7 +10,7 @@ const EFFECTS = [
   { label: 'Beatgrid', engine: 'Beat Repeat' }
 ];
 
-const FxKnob = ({ deck, slot, trackRack, trackBeatAvailable, globalRack, globalSlot, globalBeatAvailable, globalBeatReference }) => {
+const FxKnob = ({ deck, slot, trackRack, trackBeatAvailable, globalRack, globalSlot, globalBeatAvailable, globalBeatReference, midiFxRef }) => {
   const [mode, setMode] = React.useState('select');
   const [effectIndex, setEffectIndex] = React.useState(0);
   const [strength, setStrength] = React.useState(0);
@@ -53,6 +53,32 @@ const FxKnob = ({ deck, slot, trackRack, trackBeatAvailable, globalRack, globalS
       if (globalRack) globalRack.setStrength(globalSlot, route === 'global' ? value / 100 : 0);
     }
   };
+  const toggleMode = () => setMode(current => current === 'select' ? 'strength' : 'select');
+
+  // MIDI uses the same mode and value owners as the visible rotary control.
+  React.useLayoutEffect(() => {
+    if (!midiFxRef) return;
+    const midiDeck = deck === 'A' ? 'left' : 'right';
+    const apply = (action) => {
+      if (action.slot !== slot) return;
+      if (!rack) return;
+      if (action.type === 'fxmode') {
+        toggleMode();
+        return;
+      }
+      if (action.type !== 'fxvalue' || !Number.isFinite(action.value)) return;
+      const midiValue = Math.max(0, Math.min(127, action.value));
+      const maximumEffectIndex = EFFECTS.length - 1;
+      const nextValue = mode === 'select'
+        ? Math.round(midiValue * maximumEffectIndex / 127)
+        : Math.round(midiValue * 100 / 127);
+      changeValue(nextValue);
+    };
+    midiFxRef.current[midiDeck][slot] = apply;
+    return () => {
+      if (midiFxRef.current[midiDeck][slot] === apply) midiFxRef.current[midiDeck][slot] = null;
+    };
+  });
   const displayMode = mode === 'select' ? 'Select' : 'Strength';
   const availability = beatgridUnavailable ? ' unavailable' : '';
   const nextMode = mode === 'select' ? 'to strength' : 'to effect selection';
@@ -81,7 +107,7 @@ const FxKnob = ({ deck, slot, trackRack, trackBeatAvailable, globalRack, globalS
         singleTap={true}
         pressed={mode === 'strength'}
         disabled={!rack}
-        onTap={() => setMode(current => current === 'select' ? 'strength' : 'select')}
+        onTap={toggleMode}
         onChange={changeValue}
         accessibleName={name}
         title="Turn or use arrows for the displayed mode; click, Enter, or Space switches mode. Selecting an effect resets strength to zero."
