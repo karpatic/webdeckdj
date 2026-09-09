@@ -64,6 +64,8 @@ const Mixer = ({
   const [rightPitch, setRightPitch] = React.useState(0);
   const [leftAnalysis, setLeftAnalysis] = React.useState(null);
   const [rightAnalysis, setRightAnalysis] = React.useState(null);
+  const [leftBeatMap, setLeftBeatMap] = React.useState({ result: null, downbeatIndex: 0 });
+  const [rightBeatMap, setRightBeatMap] = React.useState({ result: null, downbeatIndex: 0 });
   const [leftMarkers, setLeftMarkers] = React.useState(() => emptyMarkers(null));
   const [rightMarkers, setRightMarkers] = React.useState(() => emptyMarkers(null));
   const [syncStatus, setSyncStatus] = React.useState('');
@@ -107,6 +109,8 @@ const Mixer = ({
 
   const handleLeftAnalysisChange = React.useCallback((result) => setLeftAnalysis(result), []);
   const handleRightAnalysisChange = React.useCallback((result) => setRightAnalysis(result), []);
+  const handleLeftBeatMapChange = React.useCallback((result, downbeatIndex) => setLeftBeatMap({ result, downbeatIndex }), []);
+  const handleRightBeatMapChange = React.useCallback((result, downbeatIndex) => setRightBeatMap({ result, downbeatIndex }), []);
 
   React.useEffect(() => {
     if (leftAudioRef.current) window.dj.audio.applyPitchBend(leftAudioRef.current, leftPitch);
@@ -817,6 +821,8 @@ const Mixer = ({
             )}
             onPitchChange={(value) => changeDeckPitch('left', value, true)}
             onAnalysisChange={handleLeftAnalysisChange}
+            onBeatMapChange={handleLeftBeatMapChange}
+            beatMap={leftBeatMap}
             updateProgress={(currentTime, duration) => updateProgress("left", currentTime, duration)}
             formatTime={formatTime}
             onAnalyserCreated={handleLeftAnalyserCreated}
@@ -847,6 +853,8 @@ const Mixer = ({
             )}
             onPitchChange={(value) => changeDeckPitch('right', value, true)}
             onAnalysisChange={handleRightAnalysisChange}
+            onBeatMapChange={handleRightBeatMapChange}
+            beatMap={rightBeatMap}
             updateProgress={(currentTime, duration) => updateProgress("right", currentTime, duration)}
             formatTime={formatTime}
             onAnalyserCreated={handleRightAnalyserCreated}
@@ -855,7 +863,7 @@ const Mixer = ({
       </div>
 
       {/* Shared deck transport and crossfader */}
-      {midiStatus.code !== 'connected' && <div className="midi-status sr-only" role="status" aria-live="polite">{midiStatus.message}</div>}
+      {!['idle', 'connected'].includes(midiStatus.code) && <div className="midi-status sr-only" role="status" aria-live="polite">{midiStatus.message}</div>}
       <div className="card bg-dark mb-3 shared-transport">
         <div className="card-body shared-loop-fx-row">
           <div className="loop-buttons">
@@ -866,13 +874,13 @@ const Mixer = ({
           </div>
           <div className="shared-fx-control">
             <RotaryControl
-              id="mixer-fx" label="FX" min={0} max={Math.max(0, fxSamples.length - 1)} step={1}
+              id="mixer-fx" label="Samples" min={0} max={Math.max(0, fxSamples.length - 1)} step={1}
               value={selectedFxIndex} singleTap={true} disabled={!selectedFx}
               onChange={(index) => { if (fxSamples[index]) onSelectFx(fxSamples[index].id); }}
               onTap={() => { if (selectedFx) onPreviewFx(selectedFx.id); }}
-              accessibleName={selectedFx ? `Play FX ${selectedFx.label}; arrow keys select sample` : 'FX — import an FX MP3 directory'}
-              title="Turn / arrow keys select FX; stationary click, Enter or Space restarts the selected clip"
-              formatValue={() => selectedFx ? selectedFx.label : 'Import FX'}
+              accessibleName={selectedFx ? `Play sample ${selectedFx.label}; arrow keys select sample` : 'Samples — import a Samples MP3 directory'}
+              title="Turn / arrow keys select a sample; stationary click, Enter or Space restarts the selected clip"
+              formatValue={() => selectedFx ? selectedFx.label : 'Import Samples'}
             />
             <small id="fx-playback-status" role="status">{fxError}</small>
           </div>

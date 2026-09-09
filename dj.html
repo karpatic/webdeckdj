@@ -45,9 +45,11 @@
     // Native module loading stays outside the JSX compiler.
     window.webDeckMidiReady = import('./js/midi/numark-total-control.mjs');
     window.webDeckMidiReady.catch(() => {});
+    window.webDeckFxReady = import('./js/audio/fx-rack.mjs');
+    window.webDeckFxReady.catch(() => {});
   </script>
   <!-- bundless -->
-  <script src="./js/components/dj.jsx?e=28" type="text/jsx"></script> 
+  <script src="./js/components/dj.jsx?e=29" type="text/jsx"></script>
 
   <script src="./js/bundless.acorn.min.js?t=31" cache="false" type="module"></script>  
  

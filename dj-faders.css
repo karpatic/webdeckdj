@@ -91,13 +91,14 @@
   background: #0008;
   pointer-events: none;
 }
-.dj-tools { position: relative; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.dj-tools { position: relative; z-index: 1100; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .visualizer-controls { position: static; }
 .visualizer-controls small { overflow-wrap: anywhere; }
 .dj-settings-button { min-width: 36px; font-size: 1.1rem; line-height: 1.2; }
 .dj-settings-button:focus-visible { outline: 2px solid #03dac6; outline-offset: 2px; }
 .dj-settings-panel {
   position: absolute;
+  z-index: 1;
   bottom: calc(100% + 8px);
   right: 0;
   width: min(310px, calc(100vw - 20px));
@@ -118,6 +119,7 @@
 .shared-help-button:focus-visible { outline: 2px solid #03dac6; outline-offset: 2px; }
 .shared-help-panel {
   position: absolute;
+  z-index: 1;
   bottom: calc(100% + 8px);
   right: 0;
   width: min(360px, calc(100vw - 48px));
@@ -211,6 +213,16 @@
   gap: 0.5rem;
   min-width: 0;
 }
+.deck-fx-knobs { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.25rem; }
+.eq-knobs .deck-fx-knobs .rotary-field { width: 116px; min-width: 116px; flex-basis: 116px; }
+.eq-knobs .deck-fx-knobs .rotary-field .eq-value {
+  max-width: 86px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.1;
+}
+.eq-knobs .deck-fx-knobs .rotary-field.is-killed .rotary-control { border-color: #03dac6; background: radial-gradient(circle at 35% 30%, #23645f, #102725 65%); }
+.eq-knobs .deck-fx-knobs .rotary-field.is-killed .eq-value { color: #73fff0; }
 .deck-bpm-control { flex: 1 1 132px; min-width: 0; }
 .deck-bpm-readout {
   display: inline-block;
@@ -275,7 +287,7 @@
 .loop-buttons .btn[aria-pressed="true"] { background: #075e55; border-color: #03dac6; }
 .loop-buttons small { flex-basis: 100%; font-size: 0.65rem; }
 .shared-fx-control { min-width: 0; }
-.shared-fx-control .rotary-field { grid-template-columns: 20px 48px minmax(0, 1fr); gap: 0.25rem; min-width: 0; }
+.shared-fx-control .rotary-field { grid-template-columns: 54px 48px minmax(0, 1fr); gap: 0.25rem; min-width: 0; }
 .shared-fx-control .rotary-field .eq-value { min-width: 0; text-align: left; font-size: 0.75rem; overflow-wrap: anywhere; }
 #fx-playback-status { display: block; text-align: center; font-size: 0.7rem; }
 .rotary-field.is-killed .rotary-control { border-color: #ff6b72; background: radial-gradient(circle at 35% 30%, #7c3038, #261319 65%); }

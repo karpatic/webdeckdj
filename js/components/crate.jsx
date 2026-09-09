@@ -94,7 +94,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
       }
     })).then(files => {
       if (!controller.signal.aborted) setBundledFx([{
-        name: 'builtin:fx', label: 'FX — Soundboard', type: 'fx', builtIn: true,
+        name: 'builtin:fx', label: 'Samples — Soundboard', type: 'fx', builtIn: true,
         files, fileIds: clips.map(clip => `builtin:fx:${clip[0]}`)
       }]);
     });
@@ -265,7 +265,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
       await Promise.all(Array.from(directoryMap.values()).map((dir) => saveDirectoryToDB(dir, true)));
       setDirectories(await loadDirectoriesFromDB());
     } catch (err) {
-      setError(`Could not save ${type === 'fx' ? 'FX' : 'music'}: ${err.message}. Existing folders were not replaced.`);
+      setError(`Could not save ${type === 'fx' ? 'samples' : 'music'}: ${err.message}. Existing folders were not replaced.`);
       try { setDirectories(await loadDirectoriesFromDB()); } catch (readError) { /* Keep current library visible. */ }
     } finally { setBusy(false); }
   };
@@ -301,7 +301,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
   };
 
   const clearImportedMusic = async () => {
-    if (busy || !window.confirm("Clear all imported music? FX and the built-in Example folder will stay.")) return;
+    if (busy || !window.confirm("Clear all imported music? Samples and the built-in Example folder will stay.")) return;
     setBusy(true);
     setError("");
     try {
@@ -454,7 +454,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
       <div className="card-body">
         <div className="d-flex flex-wrap gap-2 mb-3">
           <button className="btn btn-primary" disabled={busy} onClick={() => fileInputRef.current.click()}>Add MP3 Directory</button>
-          <button className="btn btn-outline-info" disabled={busy} onClick={() => fxInputRef.current.click()}>Add FX MP3 Directory</button>
+          <button className="btn btn-outline-info" disabled={busy} onClick={() => fxInputRef.current.click()}>Add Samples MP3 Directory</button>
           <button className="btn btn-danger" disabled={busy} onClick={clearImportedMusic}>Clear Imported Music</button>
         </div>
         <input type="file" ref={fileInputRef} webkitdirectory="true" directory="true" multiple accept=".mp3,audio/mpeg" hidden onChange={event => handleDirectorySelect(event, 'music')} />
@@ -482,9 +482,9 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
             {selectedDirectory.type === 'fx' && selectedFile && <div className="mt-2">
               <button type="button" className="btn btn-sm btn-outline-info me-2"
                 aria-pressed={selectedFxId === selectedSampleId} disabled={!selectedFile.size}
-                onClick={() => onSelectFx(selectedSampleId)}>Select FX</button>
+                onClick={() => onSelectFx(selectedSampleId)}>Select Sample</button>
               <button type="button" className="btn btn-sm btn-outline-info" disabled={!selectedFile.size}
-                onClick={() => onPreviewFx(selectedSampleId)}>Preview FX</button>
+                onClick={() => onPreviewFx(selectedSampleId)}>Preview Sample</button>
             </div>}
             {!selectedDirectory.builtIn && <div className="mt-2">
               <button type="button" className="btn btn-sm btn-outline-danger me-2" disabled={busy || !selectedFile}

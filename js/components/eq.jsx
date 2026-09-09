@@ -1,12 +1,13 @@
 import React from "react";
 import RotaryControl from "./rotary.jsx";
+import FxKnob from "./fx-knob.jsx";
 
 const formatSignedValue = (value, suffix) => {
   const displayValue = suffix === '%' ? Number(value).toFixed(1) : value;
   return `${value > 0 ? "+" : ""}${displayValue}${suffix}`;
 };
 
-const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, volume, onVolumeChange, syncControl, timeline, scrollPreview, midiEQRef }) => {
+const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, volume, onVolumeChange, syncControl, timeline, scrollPreview, midiEQRef, fxRack, beatAvailable }) => {
   const [eq, setEq] = React.useState({ bass: 0, mid: 0, treble: 0 });
   const [killed, setKilled] = React.useState({ bass: false, mid: false, treble: false });
 
@@ -91,6 +92,10 @@ const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, 
               formatValue={(value) => formatSignedValue(value, '%')}
             />
             <div className="deck-bpm-control">{bpmControl}</div>
+          </div>
+          <div className="deck-fx-knobs mb-1">
+            <FxKnob deck={name} slot={0} rack={fxRack} beatAvailable={beatAvailable} />
+            <FxKnob deck={name} slot={1} rack={fxRack} beatAvailable={beatAvailable} />
           </div>
           {['treble', 'mid', 'bass'].map((band) => (
             <div className="mb-1" key={band}>

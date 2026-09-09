@@ -32,6 +32,7 @@ const BeatDetector = ({
   pitch = 0,
   onBeatDetected,
   onAnalysisChange,
+  onBeatMapChange,
   renderDeckControls
 }) => {
   const [analysis, setAnalysis] = React.useState({
@@ -232,6 +233,9 @@ const BeatDetector = ({
   // Assume the first measured beat starts a bar until the user corrects it.
   const downbeatIndex = downbeat && downbeat.file === trackFile && downbeat.result === currentResult
     ? downbeat.index : 0;
+  React.useEffect(() => {
+    if (onBeatMapChange) onBeatMapChange(currentResult, downbeatIndex);
+  }, [currentResult, downbeatIndex, onBeatMapChange]);
   const markDownbeat = () => {
     const audio = audioRef.current;
     const ticks = currentResult && currentResult.ticks;

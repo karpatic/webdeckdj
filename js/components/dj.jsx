@@ -98,7 +98,7 @@ const SharedHelp = ({ midiApi, midiStatus }) => {
         onMouseLeave={(event) => event.stopPropagation()}
         aria-label="MIDI controller" hidden={!midiOpen}>
         <strong>Numark Total Control</strong>
-        <p className="mb-2">{midiStatus?.code === 'connected' ? 'Connected' : midiStatus?.message || 'MIDI not connected'}</p>
+        {midiStatus?.code !== 'idle' && <p className="mb-2">{midiStatus?.code === 'connected' ? 'Connected' : midiStatus?.message}</p>}
         <div className="d-flex gap-2 mb-2">
           <button type="button" className="btn btn-sm btn-primary"
             disabled={!midiApi || ['requesting', 'connecting'].includes(midiStatus?.code)}
@@ -133,7 +133,8 @@ const SharedHelp = ({ midiApi, midiStatus }) => {
         <p>The full-song overview runs left (start) to right (end). Click or tap to seek; use Left/Right to move five seconds, or Home/End. Seeking keeps the current play/pause state. The white line is the playhead; brighter bars have been played. Each vertical waveform preview runs top to bottom and scrolls upward during playback. Its corner button switches between 35 seconds (five above the fixed playhead, thirty below) and 8 seconds (two above, six below). Waveforms reuse the full-file detailed timeline data; measured beat ticks sit at the edge.</p>
         <p>Each loaded track is analyzed in full locally by the pinned Degara worker. BPM follows playback speed; Sync uses measured beat ticks, not an invented grid. The gear starts or terminates automatic analysis work for both decks.</p>
         <p>Set Cue saves this deck's current position; Cue returns there and pauses (initially the start). Loading another track clears that deck's cue and loop. Loop In saves the start; Loop Out must be later, enables the loop, and a second press exits. Seeking outside an active loop exits it and keeps play/pause unchanged. Loop timing uses media events and a playing-only deadline, not sample-accurate audio scheduling.</p>
-        <p>Turn FX or use arrow keys to select an imported FX clip; click, Enter or Space restarts it on an independent, moderate-volume channel. Select is silent; Preview plays. Add FX MP3 Directory keeps effects separate from music. No clip plays automatically.</p>
+        <p>Turn Samples or use arrow keys to select an imported clip; click, Enter or Space restarts it on an independent, moderate-volume channel. Select is silent; Preview plays. Add Samples MP3 Directory keeps samples separate from music. No clip plays automatically.</p>
+        <p>Each deck has two independent, serial audio FX slots. Turn a knob to select Filter, Echo, Reverb, Flanger, Phaser, or Beatgrid; click, Enter, or Space to switch to strength, then repeat to return to selection. Selecting an effect resets that slot to dry. Beatgrid is a buffered beat-repeat aligned to the measured map and chosen downbeat; it stays unavailable until measured BPM exists.</p>
         <p>Click Bass, Mid or Treble once (or Enter/Space) to toggle band kill. The selected rotary gain is retained; dragging or arrow keys adjust it without toggling kill. Kill applies -40 dB to the existing shelf/peak filter, not perfect isolated-band silence or a master mute.</p>
         <p className="mb-1">Frequency color shows the strongest band:</p>
         <ul>
@@ -214,7 +215,7 @@ const App = () => {
     setFxError("");
     const validFile = sample && sample.file instanceof Blob;
     if (!validFile || !sample.file.size) {
-      setFxError("This FX file is unavailable. Import its directory again.");
+      setFxError("This sample is unavailable. Import its directory again.");
       return;
     }
     setSelectedFxId(id);
@@ -231,7 +232,7 @@ const App = () => {
     }).catch(() => {
       if (fxPlaybackRef.current.token !== token) return;
       stopFx();
-      setFxError("FX could not play. Check the MP3 file and try Preview again.");
+      setFxError("Sample could not play. Check the MP3 file and try Preview again.");
     });
   };
   
@@ -292,7 +293,7 @@ const App = () => {
       <audio id="dj-fx-audio" ref={fxAudioRef} preload="none" onEnded={stopFx} onError={() => {
         if (!fxPlaybackRef.current.id) return;
         stopFx();
-        setFxError("FX file is missing or cannot be decoded. Import a playable MP3.");
+        setFxError("Sample file is missing or cannot be decoded. Import a playable MP3.");
       }} />
       <div className="container-fluid p-0 m-0"> 
         <div className="card mb-4 bg-transparent">

@@ -131,7 +131,7 @@ export function createTotalControlDispatcher(onAction) {
 // The second argument is only an environment seam for synthetic direct checks.
 export function createTotalControlMidi(callbacks = {}, environment = globalThis) {
   let handlers = callbacks;
-  let status = { code: 'idle', message: 'MIDI not connected', input: null, inputs: [] };
+  let status = { code: 'idle', message: '', input: null, inputs: [] };
   let access = null;
   let pending = null;
   let selectedId = null;

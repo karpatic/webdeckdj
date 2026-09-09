@@ -20,6 +20,8 @@ const Deck = ({
   midiEQRef,
   syncControl,
   onAnalysisChange,
+  onBeatMapChange,
+  beatMap,
   updateProgress,
   formatTime,
   gainNode,
@@ -36,6 +38,7 @@ const Deck = ({
   
   // Node references to maintain internal EQ filters
   const nodesRef = React.useRef({});
+  const [fxRack, setFxRack] = React.useState(null);
   
 
   // Setup audio nodes - recreate when track changes
@@ -157,6 +160,52 @@ const Deck = ({
     }
   }, [audioContext, audioRef, name, setGainNode, onAnalyserCreated, gainNode, track]);
 
+  // Native DSP is inserted without taking ownership of the analyser or mixer gain.
+  React.useEffect(() => {
+    const nodes = nodesRef.current;
+    if (!audioContext || !analyser || nodes.analyser !== analyser || !nodes.trebleFilter) return undefined;
+    let cancelled = false;
+    let rack = null;
+    const treble = nodes.trebleFilter;
+    window.webDeckFxReady.then(module => module.createDeckFxRack(audioContext)).then(created => {
+      if (cancelled || nodesRef.current.analyser !== analyser) {
+        created.destroy();
+        return;
+      }
+      rack = created;
+      treble.disconnect(analyser);
+      treble.connect(rack.input);
+      rack.output.connect(analyser);
+      nodes.fxRack = rack;
+      setFxRack(rack);
+    }).catch(error => console.error(`Could not initialize Deck ${name} FX:`, error));
+    return () => {
+      cancelled = true;
+      setFxRack(current => current === rack ? null : current);
+      if (!rack) return;
+      try { treble.disconnect(rack.input); } catch (error) { /* Already detached with the old deck graph. */ }
+      try { rack.output.disconnect(analyser); } catch (error) { /* Already detached with the old deck graph. */ }
+      rack.destroy();
+      if (nodes.fxRack === rack) nodes.fxRack = null;
+    };
+  }, [audioContext, analyser, name]);
+
+  const beatResult = beatMap && beatMap.result;
+  const beatAnchor = beatResult && beatResult.ticks && beatResult.ticks[beatMap.downbeatIndex];
+  const playbackRate = audioRef.current && Number(audioRef.current.playbackRate);
+  const beatAvailable = Boolean(fxRack && beatResult && Number.isFinite(beatResult.bpm) &&
+    beatResult.bpm > 0 && Number.isFinite(beatAnchor) && playbackRate > 0);
+  React.useEffect(() => {
+    if (!fxRack) return;
+    fxRack.setBeat(beatAvailable ? {
+      bpm: beatResult.bpm * playbackRate,
+      sourceBpm: beatResult.bpm,
+      rate: playbackRate,
+      anchor: beatAnchor,
+      mediaTime: audioRef.current.currentTime
+    } : null);
+  }, [fxRack, beatAvailable, beatResult, beatAnchor, playbackRate, progress.currentTime, audioRef]);
+
   // BeatDetector owns both realtime canvases and their single gated animation loop.
 
   // Handle external gain node changes (for crossfader)
@@ -203,6 +252,7 @@ const Deck = ({
           isPlaying={isPlaying}
           pitch={pitch}
           onAnalysisChange={onAnalysisChange}
+          onBeatMapChange={onBeatMapChange}
           renderDeckControls={(bpmControl, scrollPreview) => (
             <Fragment>
               {/* EQ and transport controls */}
@@ -219,6 +269,8 @@ const Deck = ({
                 volume={volume}
                 onVolumeChange={onVolumeChange}
                 midiEQRef={midiEQRef}
+                fxRack={fxRack}
+                beatAvailable={beatAvailable}
                 syncControl={syncControl}
                 timeline={(
                   <Track
