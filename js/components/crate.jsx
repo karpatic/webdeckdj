@@ -113,6 +113,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
   const [remoteLoading, setRemoteLoading] = React.useState({});
   const remoteConnectionRef = React.useRef(null);
   const fileInputRef = React.useRef(null);
+  const filesInputRef = React.useRef(null);
   const fxInputRef = React.useRef(null);
   const browserRef = React.useRef(null);
   const DB_NAME = 'musicCrateDB';
@@ -321,7 +322,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
     }
   };
 
-  const handleDirectorySelect = async (event, type) => {
+  const handleDirectorySelect = async (event, type, flatSelectionLabel = '') => {
     const files = Array.from(event.target.files || []);
     event.target.value = '';
     if (!files.length || busy) return;
@@ -339,7 +340,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
       mp3Files.forEach(file => {
         const path = file.webkitRelativePath || file.name;
         const parts = path.split('/');
-        const label = parts.length > 1 ? parts[0] : 'Root';
+        const label = parts.length > 1 ? parts[0] : flatSelectionLabel || 'Root';
         if (!directoryMap.has(label)) {
           const name = `local:${type}:${crypto.randomUUID()}`;
           directoryMap.set(label, { name, label, type, files: [], fileIds: [], order: Date.now() });
@@ -563,6 +564,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
       <div className="card-body">
         <div className="d-flex flex-wrap gap-2 mb-3">
           <button className="btn btn-primary" disabled={busy} onClick={() => fileInputRef.current.click()}>Add MP3 Directory</button>
+          <button className="btn btn-outline-primary" disabled={busy} onClick={() => filesInputRef.current.click()}>Add MP3 Files</button>
           <button className="btn btn-outline-info" disabled={busy} onClick={() => fxInputRef.current.click()}>Add Samples MP3 Directory</button>
           <button type="button" className="btn btn-outline-light" disabled={remoteBusy}
             onClick={() => setRemotePanelOpen(open => !open)}>Connect Audio</button>
@@ -584,6 +586,8 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
             onClick={() => { setRemotePanelOpen(false); setRemotePasswordInput(""); }}>Cancel</button>
         </form>}
         <input type="file" ref={fileInputRef} webkitdirectory="true" directory="true" multiple accept=".mp3,audio/mpeg" hidden onChange={event => handleDirectorySelect(event, 'music')} />
+        <input type="file" ref={filesInputRef} data-selection="files" multiple accept=".mp3,audio/mpeg" hidden
+          onChange={event => handleDirectorySelect(event, 'music', 'Selected MP3s')} />
         <input type="file" ref={fxInputRef} webkitdirectory="true" directory="true" multiple accept=".mp3,audio/mpeg" hidden onChange={event => handleDirectorySelect(event, 'fx')} />
         {error && <p role="alert">{error}</p>}
         {remoteStatus && <p role="status">{remoteStatus}</p>}
