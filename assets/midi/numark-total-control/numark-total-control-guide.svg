@@ -1,11 +1,11 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 1520" width="1520" height="1520" role="img" aria-labelledby="guide-title guide-desc">
-  <title id="guide-title">Numark Total Control — WebDeckDJ approved target MIDI guide</title>
-  <desc id="guide-desc">Top view; Deck A left and Deck B right. On both decks, the top GAIN knob controls pitch and playback speed; the outer physical pitch slider is not mapped. The physical pitch-bend minus and plus buttons persistently fine-adjust pitch by 0.1 percentage points per press. Under each GAIN knob, Treble, Mid and Bass EQ knobs control band levels; press each EQ knob to activate its kill switch. The small circles beside the EQ knobs are LEDs, not kill buttons. Loop In and Loop Out are the two buttons immediately above each jog wheel. Bottom transport buttons, left to right on each deck: Cue, Set Cue, Play. The two inner vertical faders control deck volume. The bottom horizontal crossfader selects Deck A to the left and Deck B to the right. The Directory button returns to folders; the center browse encoder moves the selection and enters a folder; the left/right Load buttons load the selected track into Deck A/B without playback. Gray controls, including jog wheels, Sync, FX, master and headphone controls, are not mapped in this guide. Approved target mapping, not a claim of completed integration or hardware testing.</desc>
-  <rect x="0" y="0" width="1520" height="1520" rx="24" fill="#0b1018"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 1760" width="1520" height="1760" role="img" aria-labelledby="guide-title guide-desc">
+  <title id="guide-title">Numark Total Control — current WebDeckDJ MIDI mapping</title>
+  <desc id="guide-desc">Source-verified top view of the current app mapping. Deck A is left and Deck B is right. Mapped controls include both FX knobs and their mode buttons, Fine Pitch and Tap repurposed for Samples1 and Samples2, Gain repurposed for pitch, persistent pitch step buttons, jog wheels, deck volume, crossfader, push-to-kill EQ, manual Loop In and Out, Cue, Set Cue, Play, and crate browse, enter, directory, and load controls. Gray controls are not mapped: PFL, Key, Sync, Par and Par On/Off, master and headphone controls, and physical pitch sliders. Hardware has not been acceptance-tested. EQ kill is the knob press; the small adjacent circles are LEDs.</desc>
+  <rect x="0" y="0" width="1520" height="1760" rx="24" fill="#0b1018"/>
   <text x="60" y="50" fill="#e8eef5" font-size="32" font-weight="700" text-anchor="start" font-family="DejaVu Sans, sans-serif">NUMARK TOTAL CONTROL</text>
   <text x="1460" y="50" fill="#97a6b9" font-size="22" font-weight="600" text-anchor="end" font-family="DejaVu Sans, sans-serif">MIDI GUIDE</text>
-  <text x="60" y="91" fill="#97a6b9" font-size="22" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Approved target mapping</text>
+  <text x="60" y="91" fill="#97a6b9" font-size="22" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Current WebDeckDJ app mapping</text>
   <text x="1460" y="91" fill="#97a6b9" font-size="22" font-weight="400" text-anchor="end" font-family="DejaVu Sans, sans-serif">Gray = not mapped</text>
   <text x="80" y="135" fill="#e8eef5" font-size="26" font-weight="600" text-anchor="start" font-family="DejaVu Sans, sans-serif">DECK A</text>
   <text x="1440" y="135" fill="#e8eef5" font-size="26" font-weight="600" text-anchor="end" font-family="DejaVu Sans, sans-serif">DECK B</text>
@@ -92,84 +92,170 @@
         <path id="source-path926" d="m 2291.67,1364.3 h 263.047 v 12.2734 H 2291.67 Z" fill="#4c5a6c"/>
       </g>
     </g>
-    <circle cx="553" cy="62" r="48" fill="#302719" stroke="#ffc86a" stroke-width="4"/>
-    <text x="553" y="60" fill="#ffc86a" font-size="25" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Pitch</text>
-    <text x="553" y="84" fill="#ffc86a" font-size="18" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">/ speed</text>
+    <circle cx="245" cy="62" r="48" fill="#172330" stroke="#c4a1ff" stroke-width="4"/>
+    <text x="245" y="60" fill="#c4a1ff" font-size="22" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">FX 1</text>
+    <text x="245" y="84" fill="#c4a1ff" font-size="17" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">turn</text>
+    <circle cx="1013" cy="62" r="48" fill="#172330" stroke="#c4a1ff" stroke-width="4"/>
+    <text x="1013" y="60" fill="#c4a1ff" font-size="22" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">FX 1</text>
+    <text x="1013" y="84" fill="#c4a1ff" font-size="17" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">turn</text>
+    <circle cx="384" cy="62" r="48" fill="#172330" stroke="#c4a1ff" stroke-width="4"/>
+    <text x="384" y="60" fill="#c4a1ff" font-size="22" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">FX 2</text>
+    <text x="384" y="84" fill="#c4a1ff" font-size="17" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">turn</text>
+    <circle cx="1153" cy="62" r="48" fill="#172330" stroke="#c4a1ff" stroke-width="4"/>
+    <text x="1153" y="60" fill="#c4a1ff" font-size="22" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">FX 2</text>
+    <text x="1153" y="84" fill="#c4a1ff" font-size="17" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">turn</text>
+    <rect x="194.0" y="136.0" width="102" height="58" rx="8" fill="#172b38" stroke="#c4a1ff" stroke-width="3"/>
+    <text x="245" y="164" fill="#c4a1ff" font-size="20" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">SELECT</text>
+    <text x="245" y="186" fill="#c4a1ff" font-size="18" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">mode</text>
+    <rect x="962.0" y="136.0" width="102" height="58" rx="8" fill="#172b38" stroke="#c4a1ff" stroke-width="3"/>
+    <text x="1013" y="164" fill="#c4a1ff" font-size="20" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">SELECT</text>
+    <text x="1013" y="186" fill="#c4a1ff" font-size="18" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">mode</text>
+    <rect x="333.0" y="136.0" width="102" height="58" rx="8" fill="#172b38" stroke="#c4a1ff" stroke-width="3"/>
+    <text x="384" y="164" fill="#c4a1ff" font-size="18" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">FILTER</text>
+    <text x="384" y="186" fill="#c4a1ff" font-size="16" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">ON/OFF</text>
+    <rect x="1102.0" y="136.0" width="102" height="58" rx="8" fill="#172b38" stroke="#c4a1ff" stroke-width="3"/>
+    <text x="1153" y="164" fill="#c4a1ff" font-size="18" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">FILTER</text>
+    <text x="1153" y="186" fill="#c4a1ff" font-size="16" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">ON/OFF</text>
+    <circle cx="384" cy="270" r="48" fill="#172330" stroke="#ff9fc7" stroke-width="4"/>
+    <text x="384" y="268" fill="#ff9fc7" font-size="18" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Sample 1</text>
+    <text x="384" y="292" fill="#ff9fc7" font-size="17" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">select</text>
+    <rect x="333.0" y="341.0" width="102" height="58" rx="8" fill="#172b38" stroke="#ff9fc7" stroke-width="3"/>
+    <text x="384" y="369" fill="#ff9fc7" font-size="20" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">TAP</text>
+    <text x="384" y="391" fill="#ff9fc7" font-size="18" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">trigger</text>
+    <circle cx="1153" cy="270" r="48" fill="#172330" stroke="#ff9fc7" stroke-width="4"/>
+    <text x="1153" y="268" fill="#ff9fc7" font-size="18" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Sample 2</text>
+    <text x="1153" y="292" fill="#ff9fc7" font-size="17" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">select</text>
+    <rect x="1102.0" y="341.0" width="102" height="58" rx="8" fill="#172b38" stroke="#ff9fc7" stroke-width="3"/>
+    <text x="1153" y="369" fill="#ff9fc7" font-size="20" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">TAP</text>
+    <text x="1153" y="391" fill="#ff9fc7" font-size="18" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">trigger</text>
+    <text x="245" y="265" fill="#97a6b9" font-size="21" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PAR</text>
+    <text x="245" y="289" fill="#97a6b9" font-size="16" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">unmapped</text>
+    <text x="245" y="366" fill="#97a6b9" font-size="16" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PAR ON/OFF</text>
+    <text x="245" y="389" fill="#97a6b9" font-size="15" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">unmapped</text>
+    <text x="1013" y="265" fill="#97a6b9" font-size="21" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PAR</text>
+    <text x="1013" y="289" fill="#97a6b9" font-size="16" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">unmapped</text>
+    <text x="1013" y="366" fill="#97a6b9" font-size="16" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PAR ON/OFF</text>
+    <text x="1013" y="389" fill="#97a6b9" font-size="15" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">unmapped</text>
+    <circle cx="553" cy="62" r="48" fill="#172330" stroke="#ffc86a" stroke-width="4"/>
+    <text x="553" y="60" fill="#ffc86a" font-size="25" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Pitch</text>
+    <text x="553" y="84" fill="#ffc86a" font-size="18" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">/ speed</text>
     <text x="553" y="124" fill="#ffc86a" font-size="20" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">GAIN knob</text>
-    <circle cx="553" cy="188" r="48" fill="#142d26" stroke="#73e3ad" stroke-width="4"/>
-    <text x="553" y="189" fill="#73e3ad" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Treble</text>
-    <text x="553" y="212" fill="#73e3ad" font-size="15" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
-    <circle cx="553" cy="314" r="48" fill="#142d26" stroke="#73e3ad" stroke-width="4"/>
-    <text x="553" y="315" fill="#73e3ad" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Mid</text>
-    <text x="553" y="338" fill="#73e3ad" font-size="15" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
-    <circle cx="553" cy="440" r="48" fill="#142d26" stroke="#73e3ad" stroke-width="4"/>
-    <text x="553" y="441" fill="#73e3ad" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Bass</text>
-    <text x="553" y="464" fill="#73e3ad" font-size="15" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
-    <circle cx="845" cy="62" r="48" fill="#302719" stroke="#ffc86a" stroke-width="4"/>
-    <text x="845" y="60" fill="#ffc86a" font-size="25" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Pitch</text>
-    <text x="845" y="84" fill="#ffc86a" font-size="18" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">/ speed</text>
+    <circle cx="553" cy="188" r="48" fill="#172330" stroke="#73e3ad" stroke-width="4"/>
+    <text x="553" y="186" fill="#73e3ad" font-size="24" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Treble</text>
+    <text x="553" y="210" fill="#73e3ad" font-size="15" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
+    <circle cx="553" cy="314" r="48" fill="#172330" stroke="#73e3ad" stroke-width="4"/>
+    <text x="553" y="312" fill="#73e3ad" font-size="24" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Mid</text>
+    <text x="553" y="336" fill="#73e3ad" font-size="15" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
+    <circle cx="553" cy="440" r="48" fill="#172330" stroke="#73e3ad" stroke-width="4"/>
+    <text x="553" y="438" fill="#73e3ad" font-size="24" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Bass</text>
+    <text x="553" y="462" fill="#73e3ad" font-size="15" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
+    <circle cx="845" cy="62" r="48" fill="#172330" stroke="#ffc86a" stroke-width="4"/>
+    <text x="845" y="60" fill="#ffc86a" font-size="25" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Pitch</text>
+    <text x="845" y="84" fill="#ffc86a" font-size="18" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">/ speed</text>
     <text x="845" y="124" fill="#ffc86a" font-size="20" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">GAIN knob</text>
-    <circle cx="845" cy="188" r="48" fill="#142d26" stroke="#73e3ad" stroke-width="4"/>
-    <text x="845" y="189" fill="#73e3ad" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Treble</text>
-    <text x="845" y="212" fill="#73e3ad" font-size="15" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
-    <circle cx="845" cy="314" r="48" fill="#142d26" stroke="#73e3ad" stroke-width="4"/>
-    <text x="845" y="315" fill="#73e3ad" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Mid</text>
-    <text x="845" y="338" fill="#73e3ad" font-size="15" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
-    <circle cx="845" cy="440" r="48" fill="#142d26" stroke="#73e3ad" stroke-width="4"/>
-    <text x="845" y="441" fill="#73e3ad" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Bass</text>
-    <text x="845" y="464" fill="#73e3ad" font-size="15" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
-    <text x="300" y="442" fill="#73e3ad" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">EQ + push kill</text>
-    <polyline points="399,435 453,435 505,440" fill="none" stroke="#73e3ad" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="1100" y="442" fill="#73e3ad" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">EQ + push kill</text>
-    <polyline points="1001,435 947,435 893,440" fill="none" stroke="#73e3ad" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="193" y="622" width="102" height="79" rx="8" fill="#29213d" stroke="#c4a1ff" stroke-width="3"/>
-    <text x="244" y="654" fill="#c4a1ff" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Loop</text>
-    <text x="244" y="684" fill="#c4a1ff" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">In</text>
-    <rect x="333" y="622" width="102" height="79" rx="8" fill="#29213d" stroke="#c4a1ff" stroke-width="3"/>
-    <text x="384" y="654" fill="#c4a1ff" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Loop</text>
-    <text x="384" y="684" fill="#c4a1ff" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Out</text>
-    <rect x="962" y="622" width="102" height="79" rx="8" fill="#29213d" stroke="#c4a1ff" stroke-width="3"/>
-    <text x="1013" y="654" fill="#c4a1ff" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Loop</text>
-    <text x="1013" y="684" fill="#c4a1ff" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">In</text>
-    <rect x="1102" y="622" width="102" height="79" rx="8" fill="#29213d" stroke="#c4a1ff" stroke-width="3"/>
-    <text x="1153" y="654" fill="#c4a1ff" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Loop</text>
-    <text x="1153" y="684" fill="#c4a1ff" font-size="24" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Out</text>
+    <circle cx="845" cy="188" r="48" fill="#172330" stroke="#73e3ad" stroke-width="4"/>
+    <text x="845" y="186" fill="#73e3ad" font-size="24" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Treble</text>
+    <text x="845" y="210" fill="#73e3ad" font-size="15" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
+    <circle cx="845" cy="314" r="48" fill="#172330" stroke="#73e3ad" stroke-width="4"/>
+    <text x="845" y="312" fill="#73e3ad" font-size="24" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Mid</text>
+    <text x="845" y="336" fill="#73e3ad" font-size="15" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
+    <circle cx="845" cy="440" r="48" fill="#172330" stroke="#73e3ad" stroke-width="4"/>
+    <text x="845" y="438" fill="#73e3ad" font-size="24" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Bass</text>
+    <text x="845" y="462" fill="#73e3ad" font-size="15" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">press: kill</text>
+    <text x="300" y="442" fill="#73e3ad" font-size="22" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">EQ + push kill</text>
+    <polyline points="397,435 451,435 505,440" fill="none" stroke="#73e3ad" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="1100" y="442" fill="#73e3ad" font-size="22" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">EQ + push kill</text>
+    <polyline points="1003,435 949,435 893,440" fill="none" stroke="#73e3ad" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="81" y="701" fill="#97a6b9" font-size="17" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PITCH</text>
+    <text x="81" y="724" fill="#97a6b9" font-size="16" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">unmapped</text>
+    <text x="1316" y="701" fill="#97a6b9" font-size="17" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PITCH</text>
+    <text x="1316" y="724" fill="#97a6b9" font-size="16" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">unmapped</text>
+    <rect x="194.0" y="491.0" width="102" height="58" rx="8" fill="#172b38" stroke="#ffc86a" stroke-width="3"/>
+    <text x="245" y="519" fill="#ffc86a" font-size="18" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PITCH</text>
+    <text x="245" y="541" fill="#ffc86a" font-size="16" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">− 0.1</text>
+    <rect x="333.0" y="491.0" width="102" height="58" rx="8" fill="#172b38" stroke="#ffc86a" stroke-width="3"/>
+    <text x="384" y="519" fill="#ffc86a" font-size="18" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PITCH</text>
+    <text x="384" y="541" fill="#ffc86a" font-size="16" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">+ 0.1</text>
+    <rect x="962.0" y="491.0" width="102" height="58" rx="8" fill="#172b38" stroke="#ffc86a" stroke-width="3"/>
+    <text x="1013" y="519" fill="#ffc86a" font-size="18" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PITCH</text>
+    <text x="1013" y="541" fill="#ffc86a" font-size="16" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">− 0.1</text>
+    <rect x="1102.0" y="491.0" width="102" height="58" rx="8" fill="#172b38" stroke="#ffc86a" stroke-width="3"/>
+    <text x="1153" y="519" fill="#ffc86a" font-size="18" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PITCH</text>
+    <text x="1153" y="541" fill="#ffc86a" font-size="16" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">+ 0.1</text>
+    <rect x="194.0" y="611.0" width="102" height="78" rx="8" fill="#172b38" stroke="#c4a1ff" stroke-width="3"/>
+    <text x="245" y="649" fill="#c4a1ff" font-size="22" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">LOOP</text>
+    <text x="245" y="671" fill="#c4a1ff" font-size="20" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">IN</text>
+    <rect x="333.0" y="611.0" width="102" height="78" rx="8" fill="#172b38" stroke="#c4a1ff" stroke-width="3"/>
+    <text x="384" y="649" fill="#c4a1ff" font-size="22" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">LOOP</text>
+    <text x="384" y="671" fill="#c4a1ff" font-size="20" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">OUT</text>
+    <rect x="962.0" y="611.0" width="102" height="78" rx="8" fill="#172b38" stroke="#c4a1ff" stroke-width="3"/>
+    <text x="1013" y="649" fill="#c4a1ff" font-size="22" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">LOOP</text>
+    <text x="1013" y="671" fill="#c4a1ff" font-size="20" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">IN</text>
+    <rect x="1102.0" y="611.0" width="102" height="78" rx="8" fill="#172b38" stroke="#c4a1ff" stroke-width="3"/>
+    <text x="1153" y="649" fill="#c4a1ff" font-size="22" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">LOOP</text>
+    <text x="1153" y="671" fill="#c4a1ff" font-size="20" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">OUT</text>
+    <circle cx="700" cy="540" r="55" fill="#172330" stroke="#77d5ff" stroke-width="4"/>
+    <text x="700" y="538" fill="#77d5ff" font-size="22" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Browse</text>
+    <text x="700" y="562" fill="#77d5ff" font-size="15" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">turn / press</text>
+    <rect x="500.5" y="589.0" width="105" height="62" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="553" y="619" fill="#77d5ff" font-size="18" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">LOAD A</text>
+    <text x="553" y="641" fill="#77d5ff" font-size="16" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">load only</text>
+    <rect x="792.5" y="589.0" width="105" height="62" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="845" y="619" fill="#77d5ff" font-size="18" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">LOAD B</text>
+    <text x="845" y="641" fill="#77d5ff" font-size="16" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">load only</text>
+    <rect x="645.0" y="649.0" width="110" height="62" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="700" y="679" fill="#77d5ff" font-size="17" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">DIRECTORY</text>
+    <text x="700" y="701" fill="#77d5ff" font-size="15" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">folders</text>
     <rect x="540" y="746" width="24" height="313" rx="12" fill="#1e3644" stroke="#77d5ff" stroke-width="3"/>
     <text x="552" y="1094" fill="#77d5ff" font-size="25" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Volume A</text>
     <polyline points="552,1060 552,1071" fill="none" stroke="#77d5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     <rect x="831" y="746" width="24" height="313" rx="12" fill="#1e3644" stroke="#77d5ff" stroke-width="3"/>
     <text x="843" y="1094" fill="#77d5ff" font-size="25" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Volume B</text>
     <polyline points="843,1060 843,1071" fill="none" stroke="#77d5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="223" y="924" fill="#7f8b9a" font-size="27" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">JOG</text>
-    <text x="223" y="957" fill="#7f8b9a" font-size="21" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">not mapped</text>
-    <text x="1177" y="924" fill="#7f8b9a" font-size="27" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">JOG</text>
-    <text x="1177" y="957" fill="#7f8b9a" font-size="21" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">not mapped</text>
-    <text x="81" y="719" fill="#97a6b9" font-size="18" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">unmapped</text>
-    <text x="1316" y="719" fill="#97a6b9" font-size="18" font-weight="400" text-anchor="middle" font-family="DejaVu Sans, sans-serif">unmapped</text>
-    <rect x="29" y="1164" width="102" height="80" rx="8" fill="#183443" stroke="#77d5ff" stroke-width="3"/>
-    <text x="80" y="1212" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Cue</text>
-    <rect x="169" y="1164" width="102" height="80" rx="8" fill="#183443" stroke="#77d5ff" stroke-width="3"/>
-    <text x="220" y="1198" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Set</text>
-    <text x="220" y="1226" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Cue</text>
-    <rect x="310" y="1164" width="102" height="80" rx="8" fill="#183443" stroke="#77d5ff" stroke-width="3"/>
-    <text x="361" y="1212" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Play</text>
-    <rect x="986" y="1164" width="102" height="80" rx="8" fill="#183443" stroke="#77d5ff" stroke-width="3"/>
-    <text x="1037" y="1212" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Cue</text>
-    <rect x="1126" y="1164" width="102" height="80" rx="8" fill="#183443" stroke="#77d5ff" stroke-width="3"/>
-    <text x="1177" y="1198" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Set</text>
-    <text x="1177" y="1226" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Cue</text>
-    <rect x="1266" y="1164" width="102" height="80" rx="8" fill="#183443" stroke="#77d5ff" stroke-width="3"/>
-    <text x="1317" y="1212" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Play</text>
+    <circle cx="223" cy="924" r="199" fill="#1d3340" stroke="#77d5ff" stroke-width="5" opacity="0.72"/>
+    <text x="223" y="905" fill="#77d5ff" font-size="30" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">JOG A</text>
+    <text x="223" y="943" fill="#77d5ff" font-size="21" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">playing: bend</text>
+    <text x="223" y="976" fill="#77d5ff" font-size="21" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">paused: scroll</text>
+    <circle cx="1177" cy="924" r="199" fill="#1d3340" stroke="#77d5ff" stroke-width="5" opacity="0.72"/>
+    <text x="1177" y="905" fill="#77d5ff" font-size="30" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">JOG B</text>
+    <text x="1177" y="943" fill="#77d5ff" font-size="21" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">playing: bend</text>
+    <text x="1177" y="976" fill="#77d5ff" font-size="21" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">paused: scroll</text>
+    <rect x="29.0" y="1164.0" width="102" height="80" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="80" y="1211" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Cue</text>
+    <rect x="169.0" y="1164.0" width="102" height="80" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="220" y="1203" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Set</text>
+    <text x="220" y="1225" fill="#77d5ff" font-size="21" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Cue</text>
+    <rect x="310.0" y="1164.0" width="102" height="80" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="361" y="1211" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Play</text>
+    <rect x="986.0" y="1164.0" width="102" height="80" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="1037" y="1211" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Cue</text>
+    <rect x="1126.0" y="1164.0" width="102" height="80" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="1177" y="1203" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Set</text>
+    <text x="1177" y="1225" fill="#77d5ff" font-size="21" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Cue</text>
+    <rect x="1266.0" y="1164.0" width="102" height="80" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="1317" y="1211" fill="#77d5ff" font-size="23" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Play</text>
     <rect x="543" y="1167" width="314" height="24" rx="12" fill="#24404b" stroke="#77d5ff" stroke-width="3"/>
     <text x="700" y="1140" fill="#77d5ff" font-size="25" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Crossfader</text>
     <polyline points="700,1148 700,1166" fill="none" stroke="#77d5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     <text x="567" y="1240" fill="#77d5ff" font-size="25" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">← A</text>
     <text x="833" y="1240" fill="#77d5ff" font-size="25" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">B →</text>
+    <text x="80" y="69" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PFL</text>
+    <text x="80" y="172" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">KEY</text>
+    <text x="80" y="277" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">SYNC</text>
+    <text x="1317" y="69" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PFL</text>
+    <text x="1317" y="172" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">KEY</text>
+    <text x="1317" y="277" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">SYNC</text>
+    <text x="700" y="113" fill="#97a6b9" font-size="18" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">MASTER</text>
+    <text x="700" y="239" fill="#97a6b9" font-size="17" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PH MIX</text>
+    <text x="700" y="365" fill="#97a6b9" font-size="17" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PH VOL</text>
   </g>
-  <text x="60" y="1480" fill="#ffc86a" font-size="22" font-weight="600" text-anchor="start" font-family="DejaVu Sans, sans-serif">GAIN → pitch/speed</text>
-  <text x="760" y="1480" fill="#73e3ad" font-size="22" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">EQ: turn = level · press = kill</text>
-  <text x="1460" y="1480" fill="#97a6b9" font-size="20" font-weight="400" text-anchor="end" font-family="DejaVu Sans, sans-serif">Local review</text>
-  <text x="60" y="1415" fill="#77d5ff" font-size="20" font-weight="600" text-anchor="start" font-family="DejaVu Sans, sans-serif">Directory = folders</text>
-  <text x="760" y="1415" fill="#77d5ff" font-size="20" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">Browse encoder: turn = move · press = enter</text>
-  <text x="1460" y="1415" fill="#77d5ff" font-size="20" font-weight="600" text-anchor="end" font-family="DejaVu Sans, sans-serif">Load A / Load B = load only</text>
+  <text x="60" y="1485" fill="#e8eef5" font-size="23" font-weight="600" text-anchor="start" font-family="DejaVu Sans, sans-serif">HOW THE CURRENT APP USES IT</text>
+  <text x="60" y="1530" fill="#c4a1ff" font-size="22" font-weight="600" text-anchor="start" font-family="DejaVu Sans, sans-serif">FX 1 / FX 2</text>
+  <text x="255" y="1530" fill="#d9e1eb" font-size="20" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Turn selects effect (4 relative units = 1 step).</text>
+  <text x="255" y="1562" fill="#d9e1eb" font-size="20" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">SELECT / FILTER buttons switch to Strength; sensitivity stays 1% per unit.</text>
+  <text x="60" y="1610" fill="#77d5ff" font-size="22" font-weight="600" text-anchor="start" font-family="DejaVu Sans, sans-serif">CUE / LOOPS</text>
+  <text x="255" y="1610" fill="#d9e1eb" font-size="20" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Cue returns to the saved cue and pauses · Set Cue saves the current position.</text>
+  <text x="255" y="1642" fill="#d9e1eb" font-size="20" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Loop In saves a new start · Loop Out sets/activates or exits the manual loop.</text>
+  <text x="60" y="1692" fill="#97a6b9" font-size="19" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Hardware layout source-verified · input only · no LED output · not hardware acceptance-tested</text>
+  <text x="60" y="1728" fill="#97a6b9" font-size="18" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Gray: PFL · Key · Sync · PAR / PAR On-Off · master / headphones · physical pitch sliders</text>
 </svg>

@@ -1,12 +1,12 @@
 # Numark Total Control — local-review MIDI guide
 
-**Status: approved target mapping; integration and hardware behavior are not certified by this illustration. Local review only. Redistribution rights for the source artwork are unverified; do not externally publish these assets until rights are resolved.**
+**Status: current WebDeckDJ app mapping. Physical locations are source-verified; attached-hardware behavior is not acceptance-tested. Local review only. Redistribution rights for the source artwork are unverified; do not externally publish these assets until rights are resolved.**
 
 ## Assets
 
-- `numark-total-control-guide.svg`: self-contained, inert SVG; 1520 × 1520 viewBox and intrinsic dimensions. Preferred zoomable illustration. Includes SVG title, description and readable text labels.
-- `numark-total-control-guide.png`: 1520 × 1520 raster rendering of the SVG.
-- `popup-preview.png`: 760 × 760 rendering for popup-width review; not a replacement for the full-resolution guide.
+- `numark-total-control-guide.svg`: self-contained, inert SVG; 1520 × 1760 viewBox and intrinsic dimensions. Preferred zoomable illustration. Includes SVG title, description and readable text labels.
+- `numark-total-control-guide.png`: 1520 × 1760 raster rendering of the SVG.
+- `popup-preview.png`: 760 × 880 rendering for popup-width review; not a replacement for the full-resolution guide.
 - `source-original.svg.txt`: exact, unchanged 185,917-byte source preserved as text, not an embeddable SVG. Do not embed it.
 - `source-preview.png`: original source rendered at 1400 × 1270, retained for anchor comparison. Contains obsolete Mixxx annotations; **not the current mapping guide**.
 - `build-guide.py`: bounded reproducible illustration builder; writes only `numark-total-control-guide.svg` in this directory.
@@ -15,21 +15,32 @@
 
 Top view: Deck A is on the left; Deck B is on the right.
 
-For **both decks**:
+For **both decks**, the art follows the decoder and current Mixer owners:
 
 - **Pitch / playback speed:** turn the top **GAIN** knob in the inner vertical knob column. This is an intentional app remap, not the factory gain function. The physical pitch sliders at the far left/right are **not mapped**.
+- **Pitch step:** the physical pitch-bend −/+ buttons make persistent −0.1/+0.1 percentage-point adjustments. They do not use the factory temporary-bend behavior.
+- **Jog:** while playing, turning temporarily bends playback rate; while paused/ended, it scrolls the play position. Jog does not change the stored pitch.
 - **EQ:** below GAIN, the knobs are **Treble, Mid, Bass**, in that top-to-bottom order. Turn for band level; **press the same knob for its band kill switch**. The small circles beside these knobs are **LED indicators, not buttons**. The illustration does not promise LED output support.
-- **Loop In / Loop Out:** the lower pair of buttons immediately above each jog wheel, left to right. The row above those buttons is physically pitch bend and remains gray.
+- **Loop In / Loop Out:** the lower pair of buttons immediately above each jog wheel, left to right. The mapped persistent pitch-step buttons are the row directly above them.
 - **Volume:** the inner vertical fader beside the jog wheel, A left and B right.
 - **Transport:** the bottom three buttons on each deck are **Cue, Set Cue, Play**, left to right.
+- **FX 1 / FX 2:** the physical FX Amt and Filter Amt knobs drive the app's two serial FX slots. While selecting, four relative MIDI units move one effect step; the physical Select and Filter On/Off buttons switch their respective knob between Select and Strength. Strength remains one percentage point per relative unit. These buttons are mode switches, not bypasses.
 
 **Crossfader:** the bottom horizontal fader; left favors Deck A and right favors Deck B. The intended direction is shown rather than raw MIDI polarity.
 
-**Crate navigation:** Directory returns to the root folder list; Browse turns the selection through folders/files; Enter opens the selected folder (including nested folders); Load A/B explicitly loads the selected music track without starting playback. FX selection/preview remains separate. The center-note `0x4f` is provisionally assigned to Browse Enter: its upstream software binding does not establish that it is the physical encoder press. One hardware capture or authoritative physical-input confirmation is still needed.
+**Samples:** the physical Deck A Fine Pitch/Tap pair selects and restarts **Samples1**; the Deck B pair independently selects and restarts **Samples2**. Selection is silent and each Tap restarts only its own channel. The adjacent physical Par and Par On/Off pair on each deck remains unmapped.
 
-**Gray means not mapped in this guide:** outer physical pitch sliders, jogs, Sync, FX/filter, pitch-bend, key, PFL/headphone controls, master and LEDs. No Sync hardware assignment is implied.
+**Crate navigation:** Directory returns to the folder list; Browse turns the selection through folders/files; pressing Browse enters the selected folder; Load A/B loads the selected track without starting playback. The manufacturer MIDI diagram places combined Note 79/CC 26 on that encoder, independently of the app dispatch. This is source verification, not an attached-unit acceptance result.
 
-Color is supplementary: amber = GAIN-to-pitch; green = EQ and knob-press kill; violet = loop; cyan = transport and volume/crossfader. All mapped controls have text labels.
+**Cue behavior:** Cue returns to the saved cue and pauses; Set Cue saves the current position. Loop In saves a fresh start; Loop Out sets a later end and activates the manual loop, or exits it when already active. Auto Loop lengths, measured-downbeat controls, timeline actions, and Sync have no physical mapping in the current dispatcher.
+
+**Gray means not mapped in this guide:** outer physical pitch sliders, Sync, Key, PFL/headphone controls, Par/Par On/Off, master controls, and LEDs. No Sync hardware assignment is implied.
+
+Color is supplementary: amber = pitch; green = EQ and knob-press kill; violet = FX and loop; pink = samples; cyan = transport, jog, browsing, and mixing. All mapped controls have text labels.
+
+## Artwork evidence boundary
+
+The exact artwork table is the current `notes`, `controllers`, and `browseNotes` definitions in `js/midi/numark-total-control.mjs`, plus the action dispatcher in `js/components/mixer.jsx` and the EQ/FX owners it calls. The illustration groups those implemented inputs rather than duplicating the full byte table already maintained in `docs/numark-midi.md`. It intentionally excludes software-only Auto Loop, Sync, downbeat, and timeline features.
 
 ## Provenance and accuracy
 
@@ -41,7 +52,7 @@ Original SHA-256:
 
 `03dea2f2185287900a7c343a9b3c860fccaaacbdb764484272d9c88dd013919e`
 
-The original is a Total Control cutout/vector template containing a Mixxx logo and alternate microphone/sampler annotations. It is not a photograph. Its identity/layout was visually checked against the official Numark product photo and quickstart manual. The guide reuses its unchanged hardware outline, cutouts, panel paths and fader ticks. Obsolete text, text-as-path labels and the Mixxx logo are excluded from the derived drawing, not modified in the original. All unmapped geometry is recolored neutral gray. Highlight outlines and leader endpoints are measured against the source rendering; this is a visual guide, not a dimensionally certified replacement faceplate or fabrication template. No fader cap positions were invented.
+The original is a Total Control cutout/vector template containing a Mixxx logo and alternate microphone/sampler annotations. It is not a photograph. Its identity/layout was visually checked against the official Numark product photo, quickstart manual, and MIDI diagram. The guide reuses its unchanged hardware outline, cutouts, panel paths and fader ticks. Obsolete text, text-as-path labels and the Mixxx logo are excluded from the derived drawing, not modified in the original. All unmapped geometry is recolored neutral gray. Highlight outlines and leader endpoints are measured against the source rendering; this is a visual guide, not a dimensionally certified replacement faceplate or fabrication template. No fader cap positions were invented.
 
 Official references consulted:
 
@@ -51,7 +62,7 @@ Official references consulted:
 - Hardware MIDI diagram: https://www.numark.com/images/product_downloads/totalcontrol_midimap.pdf
 - Secondary input cross-check: https://raw.githubusercontent.com/mixxxdj/mixxx/main/res/controllers/Numark%20Total%20Control.midi.xml
 
-Important manual detail: EQ is explicitly push-to-kill, with an LED beside the knob. Hardware GAIN inputs are CC 13/14 (0x0d/0x0e); the outer physical pitch-slider inputs are CC 11/12 (0x0b/0x0c). The guide intentionally assigns pitch/speed to the former, per Carlos's request. The upstream mapping is evidence about physical input identity, not authority for this app's chosen actions. No mutable application code was inspected or changed.
+Important manual detail: EQ is explicitly push-to-kill, with an LED beside the knob. Hardware GAIN inputs are CC 13/14 (0x0d/0x0e); the outer physical pitch-slider inputs are CC 11/12 (0x0b/0x0c). The guide intentionally assigns pitch/speed to the former, per Carlos's request. The upstream mapping is evidence about physical input identity, not authority for this app's chosen actions.
 
 ## License / publication limit
 
@@ -69,4 +80,4 @@ inkscape numark-total-control-guide.svg --export-type=png --export-filename=numa
 inkscape numark-total-control-guide.svg --export-type=png --export-filename=popup-preview.png --export-width=760
 ```
 
-Verified: successful Inkscape rasterization, native visual inspection against the source/official photo, and a 760px popup-size visual check. The guide SVG, full PNG and popup PNG each returned HTTP 200 and exact local-byte parity at `http://localhost:8876/music/assets/midi/numark-total-control/`. Smaller popups should offer a full-size link/zoom; tiny in-knob push-kill sublabels are supplementary to the larger EQ legend. Actual integration, MIDI input testing and public deployment are separate parent-owned tasks.
+Verified: successful Inkscape rasterization, native visual inspection against the source and official MIDI diagram, and a 760px popup-size visual check. The guide SVG, full PNG and popup PNG are checked for exact served-byte parity at `http://127.0.0.1:8876/music/assets/midi/numark-total-control/`. Attached-controller testing and public deployment are separate tasks.

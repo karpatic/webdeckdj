@@ -7,7 +7,7 @@ const formatSignedValue = (value, suffix) => {
   return `${value > 0 ? "+" : ""}${displayValue}${suffix}`;
 };
 
-const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, onPitchAdjust, volume, onVolumeChange, syncControl, timeline, scrollPreview, midiEQRef, midiFxRef, fxRack, beatAvailable }) => {
+const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, onPitchAdjust, volume, onVolumeChange, timeline, scrollPreview, midiEQRef, midiFxRef, sampleControl, fxRack, beatAvailable }) => {
   const [eq, setEq] = React.useState({ bass: 0, mid: 0, treble: 0 });
   const [killed, setKilled] = React.useState({ bass: false, mid: false, treble: false });
 
@@ -63,8 +63,49 @@ const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, 
 
   return (
     <div className={`eq-controls eq-controls-${name}`}>
+      <div className="deck-control-strip">
+        <div className="pitch-control-group">
+          <RotaryControl
+            id={`deck-${name}-pitch`} label="Pitch"
+            min={-8} max={8} step={0.1} value={pitch}
+            onChange={handlePitchChange}
+            accessibleName={`Deck ${name} Pitch`}
+            formatValue={(value) => formatSignedValue(value, '%')}
+          />
+          <div className="pitch-step-buttons" aria-label={`Deck ${name} pitch fine adjustment`}>
+            <button type="button" className="btn btn-sm btn-outline-light" aria-label={`Decrease Deck ${name} pitch by 0.1 percentage points`} onClick={() => onPitchAdjust(-0.1)}>−</button>
+            <button type="button" className="btn btn-sm btn-outline-light" aria-label={`Increase Deck ${name} pitch by 0.1 percentage points`} onClick={() => onPitchAdjust(0.1)}>+</button>
+          </div>
+        </div>
+        <div className="deck-bpm-control">{bpmControl}</div>
+      </div>
+      {timeline}
+      <div className="deck-fx-section">
+        <div className="deck-fx-knobs">
+          <FxKnob deck={name} slot={0} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} />
+          <FxKnob deck={name} slot={1} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} />
+        </div>
+        <div className="deck-sample-knob">{sampleControl}</div>
+      </div>
+      <div className="deck-eq-section">
+        {['treble', 'mid', 'bass'].map((band) => (
+          <div className="mb-1" key={band}>
+            <RotaryControl
+              id={`deck-${name}-${band}`}
+              label={band.charAt(0).toUpperCase() + band.slice(1)}
+              min={-10} max={10} step={0.5} value={eq[band]}
+              singleTap={true}
+              pressed={killed[band]}
+              onTap={() => toggleKill(band)}
+              accessibleName={`Deck ${name} ${band} band kill; selected ${eq[band]} dB`}
+              title="Click / Enter / Space toggles band kill (-40 dB filter gain). Drag or arrow keys adjust the retained gain."
+              onChange={(value) => handleEQChange(band, value)}
+              formatValue={(value) => killed[band] ? 'KILL' : formatSignedValue(value, ' dB')}
+            />
+          </div>
+        ))}
+      </div>
       <div className="volume-fader">
-        {syncControl}
         <label className="visually-hidden" htmlFor={`deck-${name}-volume`}>Deck {name} volume</label>
         <div className="volume-fader-slot">
           <input
@@ -79,48 +120,7 @@ const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, 
           />
         </div>
       </div>
-      {timeline}
       {scrollPreview}
-      <div className="eq-control-column">
-        <div className="eq-knobs">
-          <div className="deck-top-knobs mb-1">
-            <div className="pitch-control-group">
-              <RotaryControl
-                id={`deck-${name}-pitch`} label="Pitch"
-                min={-8} max={8} step={0.1} value={pitch}
-                onChange={handlePitchChange}
-                accessibleName={`Deck ${name} Pitch`}
-                formatValue={(value) => formatSignedValue(value, '%')}
-              />
-              <div className="pitch-step-buttons" aria-label={`Deck ${name} pitch fine adjustment`}>
-                <button type="button" className="btn btn-sm btn-outline-light" aria-label={`Decrease Deck ${name} pitch by 0.1 percentage points`} onClick={() => onPitchAdjust(-0.1)}>−</button>
-                <button type="button" className="btn btn-sm btn-outline-light" aria-label={`Increase Deck ${name} pitch by 0.1 percentage points`} onClick={() => onPitchAdjust(0.1)}>+</button>
-              </div>
-            </div>
-            <div className="deck-bpm-control">{bpmControl}</div>
-          </div>
-          <div className="deck-fx-knobs mb-1">
-            <FxKnob deck={name} slot={0} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} />
-            <FxKnob deck={name} slot={1} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} />
-          </div>
-          {['treble', 'mid', 'bass'].map((band) => (
-            <div className="mb-1" key={band}>
-              <RotaryControl
-                id={`deck-${name}-${band}`}
-                label={band.charAt(0).toUpperCase() + band.slice(1)}
-                min={-10} max={10} step={0.5} value={eq[band]}
-                singleTap={true}
-                pressed={killed[band]}
-                onTap={() => toggleKill(band)}
-                accessibleName={`Deck ${name} ${band} band kill; selected ${eq[band]} dB`}
-                title="Click / Enter / Space toggles band kill (-40 dB filter gain). Drag or arrow keys adjust the retained gain."
-                onChange={(value) => handleEQChange(band, value)}
-                formatValue={(value) => killed[band] ? 'KILL' : formatSignedValue(value, ' dB')}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };

@@ -18,14 +18,26 @@
   grid-area: overview;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 56px auto;
+  grid-template-rows: 56px;
   min-width: 0;
   min-height: 0;
   gap: 4px;
   font-variant-numeric: tabular-nums;
 }
-.track-timeline > small:first-child { grid-column: 2; grid-row: 2; text-align: right; }
-.track-timeline > small:last-child { grid-column: 1; grid-row: 2; }
+.track-time-readout {
+  position: absolute;
+  bottom: 3px;
+  left: 4px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(16, 20, 24, .8);
+  color: #e6edf3;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.eq-controls-B .track-time-readout { left: auto; right: 4px; }
 .track-scroll-slot {
   grid-area: preview;
   position: relative;
@@ -183,50 +195,65 @@
 @media (max-width: 576px) {
   .crate-browser { grid-template-columns: 1fr; }
 }
-.eq-controls {
+.deck-row .eq-controls {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) 72px;
-  grid-template-rows: auto auto;
-  grid-template-areas: "overview overview preview" "volume knobs preview";
+  grid-template-columns: minmax(232px, 1fr) 96px 54px 72px;
+  grid-template-rows: auto auto minmax(224px, auto);
+  grid-template-areas: "strip strip strip strip" "overview overview overview overview" "fx eq volume preview";
   align-items: stretch;
-  gap: 0.75rem;
+  gap: 0.5rem;
   container-type: inline-size;
   margin-bottom: 1rem;
 }
-.eq-controls-B {
-  grid-template-columns: 72px minmax(0, 1fr) 54px;
-  grid-template-areas: "preview overview overview" "preview knobs volume";
+.deck-row .eq-controls-B {
+  grid-template-columns: 72px 54px 96px minmax(232px, 1fr);
+  grid-template-areas: "strip strip strip strip" "overview overview overview overview" "preview volume eq fx";
 }
-.eq-controls > .volume-fader { grid-area: volume; }
-.eq-control-column {
-  grid-area: knobs;
+.deck-row .eq-controls > .volume-fader { grid-area: volume; }
+.deck-row .eq-controls > .track-timeline { grid-area: overview; }
+.deck-row .eq-controls > .track-scroll-slot { grid-area: preview; }
+.deck-row .deck-control-strip {
+  grid-area: strip;
   display: flex;
-  flex: 1;
-  min-width: 0;
-  flex-direction: column;
-}
-.eq-knobs { min-width: 0; }
-.eq-knobs > :last-child { margin-bottom: 0 !important; }
-.deck-top-knobs {
-  display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.5rem;
   min-width: 0;
+  padding: 0 0.5rem;
 }
-.deck-fx-knobs { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.25rem; }
-.pitch-control-group { flex: 0 0 96px; min-width: 96px; }
-.pitch-step-buttons { display: flex; justify-content: center; gap: 0.2rem; margin-top: 0.2rem; }
-.pitch-step-buttons .btn { min-width: 30px; padding: 0.05rem 0.3rem; line-height: 1.2; }
-.eq-knobs .deck-fx-knobs .rotary-field { width: 116px; min-width: 116px; flex-basis: 116px; }
-.eq-knobs .deck-fx-knobs .rotary-field .eq-value {
-  max-width: 86px;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  line-height: 1.1;
+.deck-row .eq-controls-A .deck-control-strip { justify-content: flex-end; }
+.deck-row .eq-controls-B .deck-control-strip { flex-direction: row-reverse; justify-content: flex-end; }
+.deck-row .deck-fx-section,
+.deck-row .deck-eq-section {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  padding: 0.5rem 0.25rem;
+  border: 1px solid #454b50;
+  border-radius: 4px;
+  background: rgba(32, 36, 40, 0.72);
 }
-.eq-knobs .deck-fx-knobs .rotary-field.is-killed .rotary-control { border-color: #03dac6; background: radial-gradient(circle at 35% 30%, #23645f, #102725 65%); }
-.eq-knobs .deck-fx-knobs .rotary-field.is-killed .eq-value { color: #73fff0; }
-.deck-bpm-control { flex: 1 1 132px; min-width: 0; }
+.deck-row .deck-fx-section { grid-area: fx; flex-direction: column; align-items: center; gap: 0.5rem; }
+.deck-row .deck-eq-section { grid-area: eq; flex-direction: column; align-items: center; }
+.deck-row .deck-fx-knobs,
+.deck-row .deck-sample-knob {
+  display: grid;
+  grid-template-columns: minmax(0, 116px);
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+.deck-row .deck-eq-section > :last-child { margin-bottom: 0 !important; }
+.deck-row .pitch-control-group { display: flex; align-items: center; flex: 0 0 auto; gap: 0.25rem; }
+.deck-row .eq-controls-A .pitch-control-group { flex-direction: row-reverse; }
+.deck-row .pitch-step-buttons { display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; }
+.deck-row .pitch-step-buttons .btn { min-width: 30px; padding: 0.05rem 0.3rem; line-height: 1.2; }
+.deck-row .deck-fx-knobs .rotary-field.is-killed .rotary-control { border-color: #03dac6; background: radial-gradient(circle at 35% 30%, #23645f, #102725 65%); }
+.deck-row .deck-fx-knobs .rotary-field.is-killed .eq-value { color: #73fff0; }
+.deck-row .deck-bpm-control { flex: 0 1 auto; min-width: 0; }
+.deck-beat-controls { display: flex; align-items: center; gap: 0.5rem; }
+.deck-row .eq-controls-B .deck-beat-controls { flex-direction: row-reverse; }
+.deck-bpm-stack { display: flex; flex-direction: column; align-items: center; }
 .deck-bpm-readout {
   display: inline-block;
   padding: 0.2rem 0.35rem;
@@ -236,6 +263,8 @@
 .deck-bpm-readout.is-beat { color: #03dac6; }
 .bar-beats, .bar-boxes { display: flex; align-items: center; gap: 4px; }
 .bar-beats { padding: 2px 0.35rem; }
+.bar-boxes { flex-direction: column; }
+.deck-row .eq-controls-B .bar-beats { flex-direction: row-reverse; }
 .bar-beats button {
   padding: 1px 5px;
   border: 1px solid #71808a;
@@ -260,7 +289,7 @@
   margin: 0 auto;
 }
 .shared-play-button { min-width: 0; white-space: nowrap; padding: 0.375rem 0.5rem; font-size: 0.875rem; }
-.volume-fader .deck-sync { flex: 0 0 auto; font-size: 0.7rem; padding: 0.2rem 0.3rem; }
+.deck-row .deck-sync { flex: 0 0 auto; font-size: 0.75rem; padding: 0.25rem 0.4rem; }
 .deck-live-visuals {
   position: relative;
   isolation: isolate;
@@ -283,17 +312,14 @@
 .deck-live-visuals .transformed-visualization { z-index: 1; }
 .cue-buttons { display: flex; gap: 0.25rem; }
 .cue-buttons .btn { white-space: nowrap; padding: 0.3rem; }
-.shared-loop-fx-row { display: grid; grid-template-columns: 1fr minmax(72px, 1.2fr) 1fr; gap: 0.5rem; align-items: center; width: 100%; max-width: 900px; margin: 0 auto; }
+.shared-loop-fx-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; align-items: center; width: 100%; max-width: 900px; margin: 0 auto; }
 .loop-buttons { display: flex; flex-wrap: wrap; gap: 0.25rem; min-width: 0; }
 .loop-buttons-B { justify-content: flex-end; text-align: right; }
 .loop-buttons .btn { font-size: 0.75rem; padding: 0.25rem; }
 .loop-buttons .btn[aria-pressed="true"] { background: #075e55; border-color: #03dac6; }
 .loop-buttons .auto-loop-cycle { min-width: 24px; }
 .loop-buttons small { flex-basis: 100%; font-size: 0.65rem; }
-.shared-fx-control { display: grid; gap: 0.25rem; min-width: 0; }
 .shared-sample-control { min-width: 0; }
-.shared-fx-control .rotary-field { grid-template-columns: 54px 48px minmax(0, 1fr); gap: 0.25rem; min-width: 0; }
-.shared-fx-control .rotary-field .eq-value { min-width: 0; text-align: left; font-size: 0.75rem; overflow-wrap: anywhere; }
 .shared-sample-control > small { display: block; text-align: center; font-size: 0.7rem; }
 .rotary-field.is-killed .rotary-control { border-color: #ff6b72; background: radial-gradient(circle at 35% 30%, #7c3038, #261319 65%); }
 .rotary-field.is-killed .eq-value { color: #ff9ba1; }
@@ -410,7 +436,9 @@
 .dj-fader:hover { --fader-mark: #b8c0c6; }
 /* Label and live value share the caption above every deck knob. */
 
-.eq-knobs .rotary-field {
+.deck-row .deck-control-strip .rotary-field,
+.deck-row .deck-eq-section .rotary-field,
+.deck-row .deck-fx-section .rotary-field {
   grid-template-columns: minmax(0, 1fr) max-content;
   gap: 0.2rem 0.4rem;
   box-sizing: border-box;
@@ -419,13 +447,17 @@
   flex: 0 0 96px;
   padding: 0 0.25rem;
 }
-.eq-knobs .rotary-field .eq-label {
+.deck-row .deck-control-strip .rotary-field .eq-label,
+.deck-row .deck-eq-section .rotary-field .eq-label,
+.deck-row .deck-fx-section .rotary-field .eq-label {
   grid-column: 1;
   grid-row: 1;
   text-align: left;
   font-size: 0.8rem;
 }
-.eq-knobs .rotary-field .eq-value {
+.deck-row .deck-control-strip .rotary-field .eq-value,
+.deck-row .deck-eq-section .rotary-field .eq-value,
+.deck-row .deck-fx-section .rotary-field .eq-value {
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
@@ -434,21 +466,51 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.eq-knobs .rotary-field .rotary-control {
+.deck-row .deck-fx-section .rotary-field.without-label .eq-value {
+  grid-column: 1 / 3;
+  text-align: center;
+}
+.deck-row .deck-control-strip .rotary-field .rotary-control,
+.deck-row .deck-eq-section .rotary-field .rotary-control,
+.deck-row .deck-fx-section .rotary-field .rotary-control {
   grid-column: 1 / 3;
   grid-row: 2;
   justify-self: center;
 }
+.deck-row .deck-fx-section .rotary-field { width: 116px; max-width: 100%; min-width: 0; flex-basis: 0; }
+.deck-row .deck-fx-section .rotary-field .eq-value {
+  max-width: 86px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.1;
+}
+.deck-row .deck-sample-knob .rotary-field .eq-label {
+  grid-column: 1 / 3;
+  white-space: nowrap;
+  text-align: center;
+}
+.deck-row .deck-sample-knob .rotary-field .eq-value {
+  grid-column: 1 / 3;
+  grid-row: 3;
+  max-width: 100%;
+  text-align: center;
+}
 @media (max-width: 575px) {
+  .deck-row .eq-controls,
+  .deck-row .eq-controls-B {
+    grid-template-columns: minmax(96px, 1fr) 54px 72px;
+    grid-template-rows: auto auto minmax(224px, auto) auto;
+    grid-template-areas: "strip strip strip" "overview overview overview" "eq volume preview" "fx fx fx";
+  }
+  .deck-row .eq-controls-B {
+    grid-template-areas: "strip strip strip" "overview overview overview" "preview volume eq" "fx fx fx";
+  }
+  .deck-row .deck-control-strip { flex-wrap: wrap; }
   .shared-transport .card-body { padding: 0.375rem; }
   .shared-transport-row { gap: 0.25rem; }
   .cue-buttons { flex-direction: column; }
   .cue-buttons .btn { font-size: 0.65rem; padding: 0.2rem; }
   .shared-loop-fx-row { gap: 0.25rem; }
-  .shared-fx-control .rotary-field { grid-template-columns: 48px minmax(0, 1fr); }
-  .shared-fx-control .eq-label { grid-column: 1; grid-row: 1; text-align: center; font-size: 0.7rem; }
-  .shared-fx-control .rotary-control { grid-column: 1; grid-row: 2; }
-  .shared-fx-control .eq-value { grid-column: 2; grid-row: 1 / 3; }
   .shared-play-button {
     min-width: 0;
     padding: 0.375rem 0.45rem;

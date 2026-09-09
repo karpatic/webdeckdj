@@ -3,18 +3,22 @@ import Deck from "./deck.jsx";
 import RotaryControl from "./rotary.jsx";
 
 const emptyMarkers = (trackUrl) => ({ trackUrl, cue: 0, in: null, out: null, active: false, kind: null, autoStartIndex: null, message: "" });
+const jogIdleMilliseconds = 150;
+const jogRatePerStep = 0.0015;
+const jogRateLimit = 0.04;
+const jogSeekSecondsPerStep = 0.02;
 
-const SampleKnob = ({ channel, samples, control }) => {
+const SampleKnob = ({ deck, channel, samples, control }) => {
   const selectedIndex = Math.max(0, samples.findIndex(sample => sample.id === control.selectedId));
   const selectedSample = samples[selectedIndex];
   return (
     <div className="shared-sample-control">
       <RotaryControl
-        id={`mixer-samples-${channel}`} label={`Samples${channel}`} min={0} max={Math.max(0, samples.length - 1)} step={1}
+        id={`mixer-samples-${channel}`} label={null} min={0} max={Math.max(0, samples.length - 1)} step={1}
         value={selectedIndex} singleTap={true} disabled={!selectedSample}
         onChange={(index) => { if (samples[index]) control.select(samples[index].id); }}
         onTap={() => { if (selectedSample) control.trigger(selectedSample.id); }}
-        accessibleName={selectedSample ? `Play Samples${channel} clip ${selectedSample.label}; arrow keys select sample` : `Samples${channel} — import a Samples MP3 directory`}
+        accessibleName={selectedSample ? `Deck ${deck} Samples${channel}: play ${selectedSample.label}; arrow keys select sample` : `Deck ${deck} Samples${channel} — import a Samples MP3 directory`}
         title="Turn / arrow keys select a sample; stationary click, Enter or Space restarts the selected clip"
         formatValue={() => selectedSample ? selectedSample.label : 'Import Samples'}
       />
@@ -77,6 +81,8 @@ const Mixer = ({
   const [rightProgress, setRightProgress] = React.useState({ currentTime: 0, duration: 0 });
   const [leftPitch, setLeftPitch] = React.useState(0);
   const [rightPitch, setRightPitch] = React.useState(0);
+  const [leftRateRevision, setLeftRateRevision] = React.useState(0);
+  const [rightRateRevision, setRightRateRevision] = React.useState(0);
   const [leftAnalysis, setLeftAnalysis] = React.useState(null);
   const [rightAnalysis, setRightAnalysis] = React.useState(null);
   const [leftBeatMap, setLeftBeatMap] = React.useState({ result: null, downbeatIndex: 0 });
@@ -88,6 +94,14 @@ const Mixer = ({
   const syncRef = React.useRef({ token: 0, rafId: null });
   const loopSeekRef = React.useRef({ left: null, right: null });
   const manualActionVersionRef = React.useRef({ left: 0, right: 0 });
+  const basePitchRef = React.useRef({ left: 0, right: 0 });
+  const trackKeyRef = React.useRef({ left: null, right: null });
+  const jogRef = React.useRef({
+    left: { timer: null, audio: null, trackKey: null, offset: 0 },
+    right: { timer: null, audio: null, trackKey: null, offset: 0 }
+  });
+  trackKeyRef.current.left = leftTrack?.url || null;
+  trackKeyRef.current.right = rightTrack?.url || null;
 
   const seekForLoop = (deck, audio, target) => {
     if (!audio || !Number.isFinite(target)) return;
@@ -123,6 +137,43 @@ const Mixer = ({
       performance.now() <= current.ignoreSeekingUntil;
   }, []);
 
+  const isJogNudgeActive = React.useCallback((deck, audio) => {
+    const state = jogRef.current[deck];
+    return Boolean(state && state.audio === audio && state.trackKey === trackKeyRef.current[deck]);
+  }, []);
+
+  const clearJogNudge = React.useCallback((deck) => {
+    const state = jogRef.current[deck];
+    if (!state) return;
+    if (state.timer !== null) window.clearTimeout(state.timer);
+    const audio = state.audio;
+    const trackKey = state.trackKey;
+    state.timer = null;
+    state.audio = null;
+    state.trackKey = null;
+    state.offset = 0;
+    const currentAudio = deck === 'left' ? leftAudioRef.current : rightAudioRef.current;
+    const stillCurrent = audio && audio === currentAudio && trackKey === trackKeyRef.current[deck];
+    if (stillCurrent) window.dj.audio.applyPitchBend(audio, basePitchRef.current[deck]);
+  }, []);
+
+  const clearAllJogNudges = React.useCallback(() => {
+    clearJogNudge('left');
+    clearJogNudge('right');
+  }, [clearJogNudge]);
+
+  const applyPitchWithActiveJog = React.useCallback((deck, audio, pitch) => {
+    const state = jogRef.current[deck];
+    if (!state || state.audio !== audio || state.trackKey !== trackKeyRef.current[deck]) {
+      window.dj.audio.applyPitchBend(audio, pitch);
+      return;
+    }
+    let rate = 1 + pitch / 100;
+    rate += state.offset;
+    rate = Math.max(0.5, Math.min(2, rate));
+    audio.playbackRate = rate;
+  }, []);
+
   const changeDeckPitch = React.useCallback((deck, value, manual) => {
     if (manual) cancelScheduledSync('Sync cancelled by manual pitch change.');
     let nextValue = Number(value);
@@ -130,10 +181,11 @@ const Mixer = ({
     nextValue = Math.max(-8, Math.min(8, nextValue));
     nextValue = Math.round(nextValue * 10) / 10;
     const audio = deck === 'left' ? leftAudioRef.current : rightAudioRef.current;
-    if (audio) window.dj.audio.applyPitchBend(audio, nextValue);
+    basePitchRef.current[deck] = nextValue;
+    if (audio) applyPitchWithActiveJog(deck, audio, nextValue);
     if (deck === 'left') setLeftPitch(nextValue);
     else setRightPitch(nextValue);
-  }, [cancelScheduledSync]);
+  }, [cancelScheduledSync, applyPitchWithActiveJog]);
 
   const adjustDeckPitch = React.useCallback((deck, delta) => {
     cancelScheduledSync('Sync cancelled by manual pitch change.');
@@ -143,10 +195,47 @@ const Mixer = ({
       const combined = Number(current) + Number(delta);
       let nextValue = Math.round(combined * 10) / 10;
       nextValue = Math.max(-8, Math.min(8, nextValue));
-      if (audio) window.dj.audio.applyPitchBend(audio, nextValue);
+      basePitchRef.current[deck] = nextValue;
+      if (audio) applyPitchWithActiveJog(deck, audio, nextValue);
       return nextValue;
     });
-  }, [cancelScheduledSync]);
+  }, [cancelScheduledSync, applyPitchWithActiveJog]);
+
+  const jogDeck = React.useCallback((deck, delta) => {
+    if ((deck !== 'left' && deck !== 'right') || !Number.isFinite(delta) || delta === 0) return;
+    const audio = deck === 'left' ? leftAudioRef.current : rightAudioRef.current;
+    const trackKey = trackKeyRef.current[deck];
+    if (!audio || !trackKey) return;
+
+    if (audio.paused || audio.ended) {
+      clearJogNudge(deck);
+      const duration = audio.duration;
+      if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(audio.currentTime)) return;
+      cancelScheduledSync('Sync cancelled by manual jog.');
+      manualActionVersionRef.current[deck] += 1;
+      const movement = delta * jogSeekSecondsPerStep;
+      let target = audio.currentTime + movement;
+      target = Math.max(0, Math.min(duration, target));
+      if (Math.abs(target - audio.currentTime) >= 0.001) audio.currentTime = target;
+      return;
+    }
+
+    cancelScheduledSync('Sync cancelled by manual jog.');
+    manualActionVersionRef.current[deck] += 1;
+    const state = jogRef.current[deck];
+    if (state.audio !== audio || state.trackKey !== trackKey) {
+      clearJogNudge(deck);
+      state.audio = audio;
+      state.trackKey = trackKey;
+      state.offset = 0;
+    }
+    let nextOffset = state.offset + delta * jogRatePerStep;
+    nextOffset = Math.max(-jogRateLimit, Math.min(jogRateLimit, nextOffset));
+    state.offset = nextOffset;
+    applyPitchWithActiveJog(deck, audio, basePitchRef.current[deck]);
+    if (state.timer !== null) window.clearTimeout(state.timer);
+    state.timer = window.setTimeout(() => clearJogNudge(deck), jogIdleMilliseconds);
+  }, [cancelScheduledSync, clearJogNudge, applyPitchWithActiveJog]);
 
   const handleLeftAnalysisChange = React.useCallback((result) => setLeftAnalysis(result), []);
   const handleRightAnalysisChange = React.useCallback((result) => setRightAnalysis(result), []);
@@ -154,14 +243,15 @@ const Mixer = ({
   const handleRightBeatMapChange = React.useCallback((result, downbeatIndex) => setRightBeatMap({ result, downbeatIndex }), []);
 
   React.useEffect(() => {
-    if (leftAudioRef.current) window.dj.audio.applyPitchBend(leftAudioRef.current, leftPitch);
-  }, [leftTrack, leftPitch]);
+    if (leftAudioRef.current) applyPitchWithActiveJog('left', leftAudioRef.current, leftPitch);
+  }, [leftTrack, leftPitch, applyPitchWithActiveJog]);
 
   React.useEffect(() => {
-    if (rightAudioRef.current) window.dj.audio.applyPitchBend(rightAudioRef.current, rightPitch);
-  }, [rightTrack, rightPitch]);
+    if (rightAudioRef.current) applyPitchWithActiveJog('right', rightAudioRef.current, rightPitch);
+  }, [rightTrack, rightPitch, applyPitchWithActiveJog]);
 
   React.useEffect(() => () => cancelScheduledSync(''), [cancelScheduledSync]);
+  React.useEffect(() => () => clearAllJogNudges(), [clearAllJogNudges]);
 
   const transportAction = (deck, action) => {
     cancelScheduledSync('Sync cancelled by manual transport change.');
@@ -476,6 +566,7 @@ const Mixer = ({
     if (prevLeftTrackRef.current?.url !== leftTrack?.url) {
       console.log("Left track changed, updating audio element");
       cancelScheduledSync('Sync cancelled because Deck A changed.');
+      clearJogNudge('left');
       prevLeftTrackRef.current = leftTrack;
       setLeftMarkers(emptyMarkers(leftTrack?.url));
       setLeftAnalysis(null);
@@ -521,6 +612,7 @@ const Mixer = ({
     };
 
     const handlePause = () => {
+      clearJogNudge('left');
       setLeftIsPlaying(false);
       stopProgressSync();
       syncProgress();
@@ -542,9 +634,15 @@ const Mixer = ({
     };
 
     const handleRateChange = () => {
+      setLeftRateRevision(current => current + 1);
+      if (isJogNudgeActive('left', leftAudio)) return;
       const rate = leftAudio.playbackRate;
       const difference = rate - 1;
-      if (Number.isFinite(rate) && rate > 0) setLeftPitch(Math.round(difference * 1000) / 10);
+      if (Number.isFinite(rate) && rate > 0) {
+        const nextPitch = Math.round(difference * 1000) / 10;
+        basePitchRef.current.left = nextPitch;
+        setLeftPitch(nextPitch);
+      }
     };
     leftAudio.addEventListener('ratechange', handleRateChange);
     leftAudio.addEventListener('timeupdate', syncProgress);
@@ -559,6 +657,7 @@ const Mixer = ({
     if (!leftAudio.paused && !leftAudio.ended) startProgressSync();
 
     return () => {
+      clearJogNudge('left');
       stopProgressSync();
       leftAudio.removeEventListener('ratechange', handleRateChange);
       leftAudio.removeEventListener('timeupdate', syncProgress);
@@ -570,7 +669,7 @@ const Mixer = ({
       leftAudio.removeEventListener('pause', handlePause);
       leftAudio.removeEventListener('ended', handlePause);
     };
-  }, [leftTrack, settings.detailedTimeline, cancelScheduledSync, isApplyingSyncSeek]);
+  }, [leftTrack, settings.detailedTimeline, cancelScheduledSync, isApplyingSyncSeek, clearJogNudge, isJogNudgeActive]);
   
   // Handle track changes for right deck
   React.useEffect(() => {
@@ -580,6 +679,7 @@ const Mixer = ({
     if (prevRightTrackRef.current?.url !== rightTrack?.url) {
       console.log("Right track changed, updating audio element");
       cancelScheduledSync('Sync cancelled because Deck B changed.');
+      clearJogNudge('right');
       prevRightTrackRef.current = rightTrack;
       setRightMarkers(emptyMarkers(rightTrack?.url));
       setRightAnalysis(null);
@@ -625,6 +725,7 @@ const Mixer = ({
     };
 
     const handlePause = () => {
+      clearJogNudge('right');
       setRightIsPlaying(false);
       stopProgressSync();
       syncProgress();
@@ -646,9 +747,15 @@ const Mixer = ({
     };
 
     const handleRateChange = () => {
+      setRightRateRevision(current => current + 1);
+      if (isJogNudgeActive('right', rightAudio)) return;
       const rate = rightAudio.playbackRate;
       const difference = rate - 1;
-      if (Number.isFinite(rate) && rate > 0) setRightPitch(Math.round(difference * 1000) / 10);
+      if (Number.isFinite(rate) && rate > 0) {
+        const nextPitch = Math.round(difference * 1000) / 10;
+        basePitchRef.current.right = nextPitch;
+        setRightPitch(nextPitch);
+      }
     };
     rightAudio.addEventListener('ratechange', handleRateChange);
     rightAudio.addEventListener('timeupdate', syncProgress);
@@ -663,6 +770,7 @@ const Mixer = ({
     if (!rightAudio.paused && !rightAudio.ended) startProgressSync();
 
     return () => {
+      clearJogNudge('right');
       stopProgressSync();
       rightAudio.removeEventListener('ratechange', handleRateChange);
       rightAudio.removeEventListener('timeupdate', syncProgress);
@@ -674,7 +782,7 @@ const Mixer = ({
       rightAudio.removeEventListener('pause', handlePause);
       rightAudio.removeEventListener('ended', handlePause);
     };
-  }, [rightTrack, settings.detailedTimeline, cancelScheduledSync, isApplyingSyncSeek]);
+  }, [rightTrack, settings.detailedTimeline, cancelScheduledSync, isApplyingSyncSeek, clearJogNudge, isJogNudgeActive]);
 
   const startSync = (followerDeck) => {
     const followerIsLeft = followerDeck === 'left';
@@ -824,7 +932,9 @@ const Mixer = ({
   const midiActionRef = React.useRef(null);
   const midiEQRef = React.useRef({ left: null, right: null });
   const midiFxRef = React.useRef({ left: [null, null], right: [null, null] });
+  const midiJogCleanupRef = React.useRef(null);
   const [midiStatus, setMidiStatus] = React.useState({ code: 'loading', message: 'Loading MIDI…' });
+  midiJogCleanupRef.current = clearAllJogNudges;
 
   React.useLayoutEffect(() => {
     midiActionRef.current = (action) => {
@@ -838,6 +948,10 @@ const Mixer = ({
       }
       if (action.type === 'pitchStep') {
         adjustDeckPitch(action.deck, action.delta);
+        return;
+      }
+      if (action.type === 'jog') {
+        jogDeck(action.deck, action.delta);
         return;
       }
       if (action.type === 'browse-move') {
@@ -907,7 +1021,10 @@ const Mixer = ({
       if (cancelled) return;
       midi = module.createTotalControlMidi({
         onAction: (action) => { if (midiActionRef.current) midiActionRef.current(action); },
-        onStatus: setMidiStatus
+        onStatus: (status) => {
+          if (status.code !== 'connected' && midiJogCleanupRef.current) midiJogCleanupRef.current();
+          setMidiStatus(status);
+        }
       });
       midiRef.current = midi;
       setMidiStatus(midi.getStatus());
@@ -956,6 +1073,7 @@ const Mixer = ({
             name="A"
             midiEQRef={midiEQRef}
             midiFxRef={midiFxRef}
+            sampleControl={<SampleKnob deck="A" channel={1} samples={fxSamples} control={sampleChannels[0]} />}
             settings={settings}
             track={leftTrack}
             audioRef={leftAudioRef}
@@ -965,6 +1083,7 @@ const Mixer = ({
             gainNode={leftGainNode}
             progress={leftProgress}
             pitch={leftPitch}
+            rateRevision={leftRateRevision}
             volume={leftVolume}
             onVolumeChange={(value) => changeDeckVolume('left', value)}
             syncControl={(
@@ -978,6 +1097,7 @@ const Mixer = ({
             onAnalysisChange={handleLeftAnalysisChange}
             onBeatMapChange={handleLeftBeatMapChange}
             beatMap={leftBeatMap}
+            markers={leftMarkers}
             updateProgress={(currentTime, duration) => updateProgress("left", currentTime, duration)}
             formatTime={formatTime}
             onAnalyserCreated={handleLeftAnalyserCreated}
@@ -990,6 +1110,7 @@ const Mixer = ({
             name="B"
             midiEQRef={midiEQRef}
             midiFxRef={midiFxRef}
+            sampleControl={<SampleKnob deck="B" channel={2} samples={fxSamples} control={sampleChannels[1]} />}
             settings={settings}
             track={rightTrack}
             audioRef={rightAudioRef}
@@ -999,6 +1120,7 @@ const Mixer = ({
             gainNode={rightGainNode}
             progress={rightProgress}
             pitch={rightPitch}
+            rateRevision={rightRateRevision}
             volume={rightVolume}
             onVolumeChange={(value) => changeDeckVolume('right', value)}
             syncControl={(
@@ -1012,6 +1134,7 @@ const Mixer = ({
             onAnalysisChange={handleRightAnalysisChange}
             onBeatMapChange={handleRightBeatMapChange}
             beatMap={rightBeatMap}
+            markers={rightMarkers}
             updateProgress={(currentTime, duration) => updateProgress("right", currentTime, duration)}
             formatTime={formatTime}
             onAnalyserCreated={handleRightAnalyserCreated}
@@ -1035,10 +1158,6 @@ const Mixer = ({
               onClick={() => cycleAutoLoop('left')}>›</button>
             <small className="loop-status" title="Deck A loop positions">{leftMarkers.in === null ? 'No loop' : `In ${formatTime(leftMarkers.in)} / Out ${leftMarkers.out === null ? '—' : formatTime(leftMarkers.out)}`}</small>
             {leftMarkers.message && <small role="status">{leftMarkers.message}</small>}
-          </div>
-          <div className="shared-fx-control">
-            <SampleKnob channel={1} samples={fxSamples} control={sampleChannels[0]} />
-            <SampleKnob channel={2} samples={fxSamples} control={sampleChannels[1]} />
           </div>
           <div className="loop-buttons loop-buttons-B">
             <button id="deck-B-loop-in" type="button" className="btn btn-sm btn-outline-light" disabled={!rightReady} aria-label="Deck B Loop In" title="Save Deck B loop start; clears the previous loop" onClick={() => transportAction('right', 'in')}>In B</button>

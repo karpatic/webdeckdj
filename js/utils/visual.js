@@ -504,7 +504,49 @@ const analyzeFrequencyBands = (sampleData, sampleRate) => {
  * @param {Number} duration - Total track duration in seconds
  * @param {Array} frequencyData - Optional array of frequency band data
  */
-const drawTrackWaveform = (waveformData, peaks, canvas, progress, duration, frequencyData) => {
+const positiveModulo = (value, divisor) => {
+  let normalized = value % divisor;
+  normalized += divisor;
+  normalized %= divisor;
+  return normalized;
+};
+
+const getBeatTickLevel = (index, downbeatIndex) => {
+  const fourBarOffset = positiveModulo(index - downbeatIndex, 16);
+  if (fourBarOffset === 0) return 2;
+  if (fourBarOffset % 4 === 0) return 1;
+  return 0;
+};
+
+const getTimelineMarkers = (markers, duration) => {
+  const validTime = (time) => Number.isFinite(time) && time >= 0 && time <= duration;
+  const cue = validTime(markers && markers.cue) ? markers.cue : null;
+  const loopIn = validTime(markers && markers.in) ? markers.in : null;
+  const loopOut = validTime(markers && markers.out) && loopIn !== null && markers.out > loopIn
+    ? markers.out : null;
+  return { cue: cue, in: loopIn, out: loopOut, active: Boolean(markers && markers.active && loopOut !== null) };
+};
+
+const drawHorizontalMarker = (ctx, x, height, color, label, dashed) => {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 1.5;
+  if (dashed) ctx.setLineDash([3, 2]);
+  ctx.beginPath();
+  ctx.moveTo(x, 0);
+  ctx.lineTo(x, height);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font = 'bold 8px system-ui, sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.textAlign = x > ctx.canvas.width - 24 ? 'right' : 'left';
+  const labelOffset = ctx.textAlign === 'right' ? -2 : 2;
+  ctx.fillText(label, x + labelOffset, 2);
+  ctx.restore();
+};
+
+const drawTrackWaveform = (waveformData, peaks, canvas, progress, duration, frequencyData, result = null, downbeatIndex = 0, markers = null) => {
   if (!canvas || !waveformData || !waveformData.length) return;
   
   try {
@@ -596,6 +638,54 @@ const drawTrackWaveform = (waveformData, peaks, canvas, progress, duration, freq
       ctx.lineTo(x, halfHeight + scaledMax);
       ctx.stroke();
     }
+
+    const timelineMarkers = getTimelineMarkers(markers, duration);
+    if (timelineMarkers.in !== null && timelineMarkers.out !== null) {
+      const loopX = timelineMarkers.in / duration * canvas.width;
+      const loopEndX = timelineMarkers.out / duration * canvas.width;
+      ctx.fillStyle = timelineMarkers.active ? 'rgba(126, 231, 135, 0.16)' : 'rgba(255, 200, 87, 0.07)';
+      ctx.fillRect(loopX, 0, loopEndX - loopX, canvas.height);
+    }
+
+    // Measured timestamps only. At dense overview resolutions, preserve the
+    // downbeat/four-bar hierarchy instead of painting an unreadable solid band.
+    const ticks = result && Array.isArray(result.ticks) ? result.ticks : [];
+    let averageBeatPixels = 0;
+    if (ticks.length > 1 && duration > 0) {
+      const measuredSpan = ticks[ticks.length - 1] - ticks[0];
+      const measuredIntervals = ticks.length - 1;
+      averageBeatPixels = canvas.width * measuredSpan;
+      averageBeatPixels /= duration;
+      averageBeatPixels /= measuredIntervals;
+    }
+    for (let i = 0; i < ticks.length; i += 1) {
+      const time = ticks[i];
+      if (Number.isFinite(time) && time >= 0 && time <= duration) {
+        const level = getBeatTickLevel(i, downbeatIndex);
+        const show = level === 2 || level === 1 && averageBeatPixels >= 0.75 || averageBeatPixels >= 2;
+        if (show) {
+          const x = time / duration * canvas.width;
+          const length = level === 2 ? 15 : level === 1 ? 10 : 5;
+          ctx.strokeStyle = level === 2 ? '#f5d76e' : level === 1 ? '#7ff4e7' : '#03dac6';
+          ctx.lineWidth = level === 2 ? 1.5 : 1;
+          ctx.beginPath();
+          ctx.moveTo(x, canvas.height - length);
+          ctx.lineTo(x, canvas.height);
+          ctx.stroke();
+        }
+      }
+    }
+
+    const loopColor = timelineMarkers.active ? '#7ee787' : 'rgba(255, 200, 87, 0.72)';
+    if (timelineMarkers.cue !== null) {
+      drawHorizontalMarker(ctx, timelineMarkers.cue / duration * canvas.width, canvas.height, '#ff69a8', 'C', true);
+    }
+    if (timelineMarkers.in !== null) {
+      drawHorizontalMarker(ctx, timelineMarkers.in / duration * canvas.width, canvas.height, loopColor, 'IN', false);
+    }
+    if (timelineMarkers.out !== null) {
+      drawHorizontalMarker(ctx, timelineMarkers.out / duration * canvas.width, canvas.height, loopColor, 'OUT', false);
+    }
     
     // Reset global alpha
     ctx.globalAlpha = 1.0;
@@ -647,7 +737,7 @@ const getPreviewEnvelope = (waveform) => {
 };
 
 // Real full-file RMS window. All positions and measured beats use source seconds.
-const drawScrollingTrack = (canvas, currentTime, duration, result, waveform = null, seconds = 35, deck = 'A') => {
+const drawScrollingTrack = (canvas, currentTime, duration, result, waveform = null, seconds = 35, deck = 'A', downbeatIndex = 0, markers = null) => {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
@@ -692,6 +782,18 @@ const drawScrollingTrack = (canvas, currentTime, duration, result, waveform = nu
     }
   }
 
+  const timelineMarkers = getTimelineMarkers(markers, duration);
+  if (timelineMarkers.in !== null && timelineMarkers.out !== null) {
+    const regionStart = Math.max(leftTime, timelineMarkers.in);
+    const regionEnd = Math.min(rightTime, timelineMarkers.out);
+    if (regionEnd > regionStart) {
+      const regionY = regionStart - start;
+      const regionSeconds = regionEnd - regionStart;
+      ctx.fillStyle = timelineMarkers.active ? 'rgba(126, 231, 135, 0.16)' : 'rgba(255, 200, 87, 0.07)';
+      ctx.fillRect(0, regionY * scale, width, regionSeconds * scale);
+    }
+  }
+
   // Measured beats only; no guessed grid, downbeats, or fabricated amplitude.
   const ticks = result && Array.isArray(result.ticks) ? result.ticks : [];
   let low = 0;
@@ -703,19 +805,48 @@ const drawScrollingTrack = (canvas, currentTime, duration, result, waveform = nu
     if (ticks[middle] < leftTime) low = middle + 1;
     else high = middle;
   }
-  ctx.strokeStyle = '#03dac6';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
   for (let i = low; i < ticks.length; i += 1) {
     const time = ticks[i];
     if (time > rightTime) break;
     const offset = time - start;
     const y = offset * scale;
+    const level = getBeatTickLevel(i, downbeatIndex);
+    const length = level === 2 ? 22 : level === 1 ? 15 : 9;
+    ctx.strokeStyle = level === 2 ? '#f5d76e' : level === 1 ? '#7ff4e7' : '#03dac6';
+    ctx.lineWidth = level === 2 ? 1.5 : 1;
+    ctx.beginPath();
     // Both decks face the shared center seam.
-    ctx.moveTo(deck === 'B' ? 1 : Math.max(0, width - 10), y);
-    ctx.lineTo(deck === 'B' ? Math.min(10, width - 1) : width - 1, y);
+    ctx.moveTo(deck === 'B' ? 0 : Math.max(0, width - length), y);
+    ctx.lineTo(deck === 'B' ? Math.min(length, width) : width, y);
+    ctx.stroke();
   }
-  ctx.stroke();
+
+  const drawVerticalMarker = (time, color, label, dashed) => {
+    if (time === null || time < leftTime || time > rightTime) return;
+    const markerOffset = time - start;
+    const y = markerOffset * scale;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 1.5;
+    if (dashed) ctx.setLineDash([3, 2]);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = 'bold 8px system-ui, sans-serif';
+    ctx.textBaseline = y > height - 12 ? 'bottom' : 'top';
+    ctx.textAlign = deck === 'B' ? 'left' : 'right';
+    const labelX = deck === 'B' ? 2 : width - 2;
+    const labelY = ctx.textBaseline === 'bottom' ? y - 2 : y + 2;
+    ctx.fillText(label, labelX, labelY);
+    ctx.restore();
+  };
+  const loopColor = timelineMarkers.active ? '#7ee787' : 'rgba(255, 200, 87, 0.72)';
+  drawVerticalMarker(timelineMarkers.cue, '#ff69a8', 'C', true);
+  drawVerticalMarker(timelineMarkers.in, loopColor, 'IN', false);
+  drawVerticalMarker(timelineMarkers.out, loopColor, 'OUT', false);
   const cursor = past * scale;
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2;

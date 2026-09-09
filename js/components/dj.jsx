@@ -185,9 +185,8 @@ const SharedHelp = ({ midiApi, midiStatus }) => {
           {midiStatus.inputs.map(input => <button key={input.id} type="button" className="btn btn-sm btn-outline-info me-1 mb-1"
             onClick={() => midiApi && midiApi.connect({ inputId: input.id })}>{input.name}</button>)}
         </div>}
-        <p className="small mb-2">Gain knobs control pitch/speed (center is normal); physical pitch sliders are unused. Pitch-bend −/+ buttons persistently fine-adjust that deck by 0.1 percentage points per press. Each side's Fine Pitch knob selects Samples1 or Samples2, and its Tap button restarts that selected sample. Center encoder browses folders and tracks. Directory returns to folders; Load buttons load the selected track into Deck A or B without starting playback.</p>
-        <p className="small mb-2">Note 79 provisionally enters the selected folder. Its physical center-push assignment is not verified; click a folder to enter it.</p>
-        <img className="midi-guide-image" src="./assets/midi/numark-total-control/numark-total-control-guide.svg" alt="Numark Total Control mapping guide" />
+        <p className="small mb-2">The guide shows the current input mapping: dual FX modes, independent Samples1/2, Gain-to-pitch, persistent pitch steps, playing/paused jog behavior, EQ push-kill, loops, transport, mixing, and crate navigation. Gray controls are not mapped. Browse press enters a folder; Load A/B never starts playback.</p>
+        <img className="midi-guide-image" src="./assets/midi/numark-total-control/numark-total-control-guide.svg?v=current-app-map-2" alt="Current WebDeckDJ MIDI mapping for the Numark Total Control; gray controls are unmapped" />
       </div>
       <div
         id="shared-dj-help-panel"

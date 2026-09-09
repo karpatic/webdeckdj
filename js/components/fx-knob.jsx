@@ -17,6 +17,7 @@ const FxKnob = ({ deck, slot, rack, beatAvailable, midiFxRef }) => {
   const modeRef = React.useRef(mode);
   const effectIndexRef = React.useRef(effectIndex);
   const strengthRef = React.useRef(strength);
+  const selectDeltaRemainderRef = React.useRef(0);
   modeRef.current = mode;
   effectIndexRef.current = effectIndex;
   strengthRef.current = strength;
@@ -34,6 +35,7 @@ const FxKnob = ({ deck, slot, rack, beatAvailable, midiFxRef }) => {
 
   const changeValue = value => {
     if (modeRef.current === 'select') {
+      selectDeltaRemainderRef.current = 0;
       const nextIndex = Math.max(0, Math.min(EFFECTS.length - 1, value));
       effectIndexRef.current = nextIndex;
       strengthRef.current = 0;
@@ -47,6 +49,7 @@ const FxKnob = ({ deck, slot, rack, beatAvailable, midiFxRef }) => {
     }
   };
   const toggleMode = () => {
+    selectDeltaRemainderRef.current = 0;
     const nextMode = modeRef.current === 'select' ? 'strength' : 'select';
     modeRef.current = nextMode;
     setMode(nextMode);
@@ -65,10 +68,23 @@ const FxKnob = ({ deck, slot, rack, beatAvailable, midiFxRef }) => {
       }
       if (action.type !== 'fxvalue' || !Number.isFinite(action.delta)) return;
       if (modeRef.current === 'select') {
+        const accumulatedDelta = selectDeltaRemainderRef.current + action.delta;
+        const selectionSteps = accumulatedDelta < 0
+          ? Math.ceil(accumulatedDelta / 4)
+          : Math.floor(accumulatedDelta / 4);
+        selectDeltaRemainderRef.current = accumulatedDelta - selectionSteps * 4;
+        if (selectionSteps === 0) return;
         const currentIndex = effectIndexRef.current;
-        const nextIndex = Math.max(0, Math.min(EFFECTS.length - 1, currentIndex + action.delta));
+        const unclampedIndex = currentIndex + selectionSteps;
+        const nextIndex = Math.max(0, Math.min(EFFECTS.length - 1, unclampedIndex));
         // A turn into the end stop is not an effect selection and must not clear strength.
-        if (nextIndex === currentIndex) return;
+        if (nextIndex === currentIndex) {
+          selectDeltaRemainderRef.current = 0;
+          return;
+        }
+        if (nextIndex !== unclampedIndex || nextIndex === 0 || nextIndex === EFFECTS.length - 1) {
+          selectDeltaRemainderRef.current = 0;
+        }
         effectIndexRef.current = nextIndex;
         strengthRef.current = 0;
         setEffectIndex(nextIndex);
@@ -93,13 +109,13 @@ const FxKnob = ({ deck, slot, rack, beatAvailable, midiFxRef }) => {
   const nextMode = mode === 'select' ? 'to strength' : 'to effect selection';
   const fxNumber = slot + 1;
   const display = mode === 'select' ? effect.label + ' · ' + strength + '%' + availability : displayMode + ' · ' + effect.label + ' · ' + strength + '%' + availability;
-  const name = 'Deck ' + deck + ' FX ' + fxNumber + ', ' + display +
+  const name = 'Deck ' + deck + ' FX' + fxNumber + ', ' + display +
     '. Click, Enter, or Space to switch ' + nextMode + ' mode.';
 
   return (
     <RotaryControl
         id={`deck-${deck}-fx-${slot + 1}`}
-        label={`FX ${slot + 1}`}
+        label={null}
         min={mode === 'select' ? 0 : 0}
         max={mode === 'select' ? EFFECTS.length - 1 : 100}
         step={mode === 'select' ? 1 : 1}

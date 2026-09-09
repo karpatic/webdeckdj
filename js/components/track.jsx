@@ -14,7 +14,9 @@ const Track = ({
   audioRef, 
   progress, 
   formatTime,
-  isPlaying
+  isPlaying,
+  beatMap,
+  markers
 }) => {  
   // Track waveform canvas reference
   const trackWaveformCanvasRef = React.useRef(null);
@@ -97,7 +99,10 @@ const Track = ({
       trackWaveformCanvasRef.current, 
       normalizedProgress,
       trackWaveform.duration,
-      trackWaveform.frequencyData
+      trackWaveform.frequencyData,
+      beatMap && beatMap.result,
+      beatMap && beatMap.downbeatIndex,
+      markers
     );
   }, [
     detailedTimeline,
@@ -107,6 +112,12 @@ const Track = ({
     trackWaveform.peaks,
     trackWaveform.duration,
     trackWaveform.frequencyData,
+    beatMap && beatMap.result,
+    beatMap && beatMap.downbeatIndex,
+    markers && markers.cue,
+    markers && markers.in,
+    markers && markers.out,
+    markers && markers.active,
     track
   ]);
 
@@ -154,7 +165,10 @@ const Track = ({
             trackWaveformCanvasRef.current,
             normalizedProgress,
             trackWaveform.duration,
-            trackWaveform.frequencyData
+            trackWaveform.frequencyData,
+            beatMap && beatMap.result,
+            beatMap && beatMap.downbeatIndex,
+            markers
           );
         }
       }
@@ -166,15 +180,18 @@ const Track = ({
     const observer = new ResizeObserver(handleResize);
     observer.observe(canvas);
     return () => observer.disconnect();
-  }, [progress.currentTime, progress.duration, trackWaveform, track, detailedTimeline]);
+  }, [progress.currentTime, progress.duration, trackWaveform, track, detailedTimeline, beatMap, markers]);
 
 
   const timelineAnalyzing = detailedTimeline && trackWaveform.analyzing;
+  let remainingTime = 0;
+  if (Number.isFinite(progress.duration) && Number.isFinite(progress.currentTime)) {
+    remainingTime = Math.max(0, progress.duration - progress.currentTime);
+  }
 
   return (
     <div className="track-timeline">
 
-      <small title="End / total duration">{formatTime(progress.duration)}</small>
       <div className="track-timeline-slot">
         {detailedTimeline && <canvas
           ref={trackWaveformCanvasRef}
@@ -217,8 +234,14 @@ const Track = ({
             <span className="visually-hidden">Analyzing track...</span>
           </div>
         )}
+        <small className="track-time-readout">
+          <span title="Current playback time">{formatTime(progress.currentTime)}</span>
+          <span aria-hidden="true"> / </span>
+          <span title="End / total duration">{formatTime(progress.duration)}</span>
+          <span aria-hidden="true"> / </span>
+          <span title="Time remaining">{formatTime(remainingTime)}</span>
+        </small>
       </div>
-      <small title="Current playback time">{formatTime(progress.currentTime)}</small>
     </div>
   );
 };

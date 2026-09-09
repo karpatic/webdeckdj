@@ -30,6 +30,8 @@ const BeatDetector = ({
   analyser,
   isPlaying,
   pitch = 0,
+  syncControl,
+  markers,
   onBeatDetected,
   onAnalysisChange,
   onBeatMapChange,
@@ -256,7 +258,7 @@ const BeatDetector = ({
     let frame = null;
     const draw = () => {
       if (stopped) return;
-      window.dj.visual.drawScrollingTrack(canvas, audio.currentTime, audio.duration, currentResult, currentWaveform, previewSeconds, name);
+      window.dj.visual.drawScrollingTrack(canvas, audio.currentTime, audio.duration, currentResult, currentWaveform, previewSeconds, name, downbeatIndex, markers);
       let active = -1;
       if (aligned && Number.isFinite(audio.currentTime) && !audio.ended) {
         const index = beatAtTime(currentResult.ticks, audio.currentTime + 0.015);
@@ -295,7 +297,7 @@ const BeatDetector = ({
       const ctx = canvas.getContext('2d');
       if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [trackFile, currentResult, currentWaveform, previewSeconds, audioRef, isPlaying, downbeatIndex, aligned, name]);
+  }, [trackFile, currentResult, currentWaveform, previewSeconds, audioRef, isPlaying, downbeatIndex, aligned, name, markers]);
 
   const result = currentResult;
   // Mixer pitch state rerenders on knob/Sync changes and native ratechange, even paused.
@@ -312,24 +314,27 @@ const BeatDetector = ({
   }
 
   const bpmControl = (
-    <div>
-      <span
-        className={isBeat && result ? 'deck-bpm-readout is-beat' : 'deck-bpm-readout'}
-        role="status"
-        aria-live="polite"
-        title={result ? 'Effective BPM at the current playback rate; Degara beat light follows measured tick times.' : detail}
-      >
-        [bpm: {bpmValue}]</span>
-      <div className="bar-beats">
-        <button type="button" onClick={markDownbeat} disabled={!result || !result.ticks.length}
-          aria-label={`Deck ${name}: set beat 1`}
-          title="First detected beat is assumed to be beat 1. Tap to correct it; snaps to the nearest measured beat.">down</button>
-        <span className="bar-boxes" role="img"
-          aria-label={aligned && barBeat >= 0 ? `Beat ${barBeat + 1} of 4` : 'Waiting for a measured beat'}>
-          {[0, 1, 2, 3].map(beat => <span key={beat}
-            className={aligned && barBeat === beat ? 'is-active' : ''} aria-hidden="true"></span>)}
-        </span>
+    <div className="deck-beat-controls">
+      <div className="deck-bpm-stack">
+        <span
+          className={isBeat && result ? 'deck-bpm-readout is-beat' : 'deck-bpm-readout'}
+          role="status"
+          aria-live="polite"
+          title={result ? 'Effective BPM at the current playback rate; Degara beat light follows measured tick times.' : detail}
+        >
+          [bpm: {bpmValue}]</span>
+        <div className="bar-beats">
+          {syncControl}
+          <button type="button" onClick={markDownbeat} disabled={!result || !result.ticks.length}
+            aria-label={`Deck ${name}: set beat 1`}
+            title="First detected beat is assumed to be beat 1. Tap to correct it; snaps to the nearest measured beat.">down</button>
+        </div>
       </div>
+      <span className="bar-boxes" role="img"
+        aria-label={aligned && barBeat >= 0 ? `Beat ${barBeat + 1} of 4` : 'Waiting for a measured beat'}>
+        {[0, 1, 2, 3].map(beat => <span key={beat}
+          className={aligned && barBeat === beat ? 'is-active' : ''} aria-hidden="true"></span>)}
+      </span>
     </div>
   );
 
@@ -354,7 +359,8 @@ const BeatDetector = ({
       <span id={`deck-${name}-preview-help`} className="visually-hidden">
         Time increases from top to bottom: {previewPast} seconds above the fixed white playhead and {previewSeconds - previewPast} below.
         The full-file audio waveform moves upward during playback when detailed timelines are enabled and ready.
-        Teal edge ticks are this track's measured beats when available; no ticks are guessed.
+        Edge ticks are measured beats: downbeats are longer and four-bar starts are longest; no ticks are guessed.
+        Cue and selected loop markers remain visible when they fall inside this window.
         Blank space lies outside the song. Pitch changes scrolling speed, not the track-time scale.
       </span>
     </div>
@@ -362,6 +368,8 @@ const BeatDetector = ({
 
   return (
     <div className="mb-3">
+      {typeof renderDeckControls === 'function' && renderDeckControls(bpmControl, scrollPreview)}
+
       {waveformEnabled || spectrumEnabled ? <div className="deck-live-visuals mb-3">
         {waveformEnabled && <canvas
           ref={waveformCanvasRef}
@@ -376,8 +384,6 @@ const BeatDetector = ({
           height="80"
         ></canvas>}
       </div> : null}
-
-      {typeof renderDeckControls === 'function' && renderDeckControls(bpmControl, scrollPreview)}
     </div>
   );
 };

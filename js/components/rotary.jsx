@@ -173,9 +173,11 @@ const RotaryControl = ({ id, label, value, min, max, step, onChange, formatValue
   const angle = -135 + normalizedPosition * 270;
   const displayValue = formatValue ? formatValue(value) : value;
 
+  const hasVisibleLabel = label !== null && label !== undefined && label !== '';
+
   return (
-    <div className={`rotary-field${pressed ? ' is-killed' : ''}`}>
-      <span id={`${id}-label`} className="eq-label">{label}</span>
+    <div className={`rotary-field${hasVisibleLabel ? '' : ' without-label'}${pressed ? ' is-killed' : ''}`}>
+      {hasVisibleLabel && <span id={`${id}-label`} className="eq-label">{label}</span>}
       <div
         id={id}
         className={`rotary-control${isDragging ? ' is-dragging' : ''}`}
@@ -183,7 +185,7 @@ const RotaryControl = ({ id, label, value, min, max, step, onChange, formatValue
         title={title}
         tabIndex="0"
         aria-label={accessibleName}
-        aria-labelledby={accessibleName ? undefined : `${id}-label ${id}-value`}
+        aria-labelledby={accessibleName ? undefined : hasVisibleLabel ? `${id}-label ${id}-value` : `${id}-value`}
         aria-pressed={singleTap ? pressed : undefined}
         aria-disabled={disabled}
         aria-describedby={hasTapAction ? "shared-dj-help-panel" : undefined}

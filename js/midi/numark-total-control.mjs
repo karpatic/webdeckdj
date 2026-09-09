@@ -1,6 +1,6 @@
 // Input assignments: pages/webmidi/controllers/numark-total-control.js:25-42.
 // Status/channel decoding: pages/webmidi/ui.js:51-60. No MIDI output or SysEx.
-// EQ/loop/pitch-step/FX/Fine Pitch/Tap INPUT assignments verified against Mixxx and Numark sources;
+// EQ/loop/pitch-step/FX/Fine Pitch/Tap/jog INPUT assignments verified against Mixxx and Numark sources;
 // see docs/numark-midi.md for URL/hash. Output/LED assignments are not inputs.
 const notes = new Map([
   [67, { type: 'play', deck: 'left' }],
@@ -44,6 +44,9 @@ const controllers = new Map([
   [10, { type: 'crossfader' }],
   [13, { type: 'pitch', deck: 'left' }],
   [14, { type: 'pitch', deck: 'right' }],
+  // Manufacturer map + Mixxx INPUT rows: signed relative jog wheels.
+  [0x19, { type: 'jog', deck: 'left' }],
+  [0x18, { type: 'jog', deck: 'right' }],
   [0x10, { type: 'eqvalue', deck: 'left', band: 'treble' }],
   [0x12, { type: 'eqvalue', deck: 'left', band: 'mid' }],
   [0x14, { type: 'eqvalue', deck: 'left', band: 'bass' }],
@@ -91,8 +94,8 @@ export function decodeTotalControl(data) {
     const action = controllers.get(number);
     if (!action) return null;
     const midiValue = Math.max(0, Math.min(127, value));
-    if (action.type === 'sampleMove' || action.type === 'fxvalue') {
-      // Fine Pitch and all four FX encoders are two's-complement relative:
+    if (action.type === 'sampleMove' || action.type === 'fxvalue' || action.type === 'jog') {
+      // Fine Pitch, FX encoders, and jog wheels are two's-complement relative:
       // 1..63 forward, 64..127 backward, and 0 is stationary.
       const delta = midiValue <= 63 ? midiValue : midiValue - 128;
       return delta ? { ...action, delta } : null;
@@ -137,7 +140,7 @@ export function createTotalControlDispatcher(onAction) {
         if (held.has(key)) return false;
         held.add(key);
       } else {
-        if (action.type === 'browse-move' || action.type === 'sampleMove' || action.type === 'fxvalue') {
+        if (action.type === 'browse-move' || action.type === 'sampleMove' || action.type === 'fxvalue' || action.type === 'jog') {
           onAction(action);
           return true;
         }

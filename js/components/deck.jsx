@@ -14,16 +14,19 @@ const Deck = ({
   isPlaying,
   progress,
   pitch,
+  rateRevision,
   onPitchChange,
   onPitchAdjust,
   volume,
   onVolumeChange,
   midiEQRef,
   midiFxRef,
+  sampleControl,
   syncControl,
   onAnalysisChange,
   onBeatMapChange,
   beatMap,
+  markers,
   updateProgress,
   formatTime,
   gainNode,
@@ -217,7 +220,7 @@ const Deck = ({
       anchor: beatAnchor,
       mediaTime: audioRef.current.currentTime
     } : null);
-  }, [fxRack, beatAvailable, beatResult, beatAnchor, playbackRate, progress.currentTime, audioRef]);
+  }, [fxRack, beatAvailable, beatResult, beatAnchor, playbackRate, progress.currentTime, audioRef, rateRevision]);
 
   // BeatDetector owns both realtime canvases and their single gated animation loop.
 
@@ -241,6 +244,9 @@ const Deck = ({
   }, [gainNode, name]);
 
   const trackTitle = track?.file?.name.replace(/\.[^/.]+$/, "") || "";
+  // Parent state clears on replacement; this identity guard prevents even a
+  // transient old-track marker paint before that effect commits.
+  const timelineMarkers = markers && markers.trackUrl === track?.url ? markers : null;
 
   return (
     <div className="card bg-dark">
@@ -264,6 +270,8 @@ const Deck = ({
           analyser={nodesRef.current?.analyser}
           isPlaying={isPlaying}
           pitch={pitch}
+          syncControl={syncControl}
+          markers={timelineMarkers}
           onAnalysisChange={onAnalysisChange}
           onBeatMapChange={onBeatMapChange}
           renderDeckControls={(bpmControl, scrollPreview) => (
@@ -284,9 +292,9 @@ const Deck = ({
                 onVolumeChange={onVolumeChange}
                 midiEQRef={midiEQRef}
                 midiFxRef={midiFxRef}
+                sampleControl={sampleControl}
                 fxRack={fxRack}
                 beatAvailable={beatAvailable}
-                syncControl={syncControl}
                 timeline={(
                   <Track
                     onWaveformChange={setPreviewWaveform}
@@ -297,6 +305,8 @@ const Deck = ({
                     progress={progress}
                     formatTime={formatTime}
                     isPlaying={isPlaying}
+                    beatMap={beatMap}
+                    markers={timelineMarkers}
                   />
                 )}
 
