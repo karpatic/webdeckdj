@@ -27,6 +27,35 @@
     return { enabled: false, reason: reason, plan: null };
   }
 
+  function getAutoLoopPlan(options) {
+    const result = options.result;
+    const beats = Number(options.beats);
+    const duration = Number(options.duration);
+    const currentTime = Number(options.currentTime);
+    if (!hasUsableBeatMap(result)) return unavailable('Auto Loop needs a measured beat map.');
+    if (beats !== 4 && beats !== 8 && beats !== 16) return unavailable('Choose 4, 8, or 16 beats.');
+    if (!(duration > 0) || !Number.isFinite(currentTime)) return unavailable('Track duration is unavailable.');
+
+    let startIndex = Number.isInteger(options.startIndex) ? options.startIndex : -1;
+    if (startIndex < 0) {
+      for (let index = 0; index < result.ticks.length; index += 1) {
+        if (result.ticks[index] <= currentTime + 0.01) startIndex = index;
+        else break;
+      }
+      if (startIndex < 0) startIndex = 0;
+    }
+    const endIndex = startIndex + beats;
+    if (startIndex >= result.ticks.length || endIndex >= result.ticks.length) {
+      return unavailable('Not enough measured beats remain for a ' + beats + '-beat loop.');
+    }
+    const start = Number(result.ticks[startIndex]);
+    const end = Number(result.ticks[endIndex]);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > duration) {
+      return unavailable('The measured ' + beats + '-beat loop does not fit in this track.');
+    }
+    return { enabled: true, reason: '', plan: { start: start, end: end, startIndex: startIndex, beats: beats } };
+  }
+
   function getSyncPlan(options) {
     const leader = options.leaderAudio;
     const follower = options.followerAudio;
@@ -103,4 +132,5 @@
   beat.hasUsableBeatMap = hasUsableBeatMap;
   beat.findNextTick = findNextTick;
   beat.getSyncPlan = getSyncPlan;
+  beat.getAutoLoopPlan = getAutoLoopPlan;
 }(window));

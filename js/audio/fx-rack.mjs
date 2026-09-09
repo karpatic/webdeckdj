@@ -210,22 +210,36 @@ class EffectSlot {
   }
 }
 
-export async function createDeckFxRack(context) {
+async function createFxRack(context, slotCount) {
   const hasWorklet = await prepareWorklet(context);
   const impulse = makeImpulse(context);
-  const slots = [new EffectSlot(context, impulse, hasWorklet), new EffectSlot(context, impulse, hasWorklet)];
-  slots[0].output.connect(slots[1].input);
+  const slots = [];
+  for (let index = 0; index < slotCount; index += 1) {
+    slots.push(new EffectSlot(context, impulse, hasWorklet));
+    if (index > 0) slots[index - 1].output.connect(slots[index].input);
+  }
   return {
     input: slots[0].input,
-    output: slots[1].output,
+    output: slots[slots.length - 1].output,
     hasWorklet,
     select(slot, effect) { if (slots[slot]) slots[slot].select(effect); },
     setStrength(slot, value) { if (slots[slot]) slots[slot].setStrength(value); },
     setBeat(beat) { slots.forEach(item => item.setBeat(beat)); },
     isAvailable(slot) { return Boolean(slots[slot] && slots[slot].isAvailable()); },
     destroy() {
-      slots[0].output.disconnect(slots[1].input);
+      for (let index = 1; index < slots.length; index += 1) {
+        slots[index - 1].output.disconnect(slots[index].input);
+      }
       slots.forEach(item => item.destroy());
     }
   };
+}
+
+export function createDeckFxRack(context) {
+  return createFxRack(context, 2);
+}
+
+// A single post-crossfader rack: A1, A2, B1, B2 in deterministic serial order.
+export function createMasterFxRack(context) {
+  return createFxRack(context, 4);
 }

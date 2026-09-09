@@ -214,6 +214,11 @@
   min-width: 0;
 }
 .deck-fx-knobs { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0.25rem; }
+.fx-slot-control { width: 116px; min-width: 116px; flex: 0 0 116px; text-align: center; }
+.fx-slot-control .fx-route-toggle { margin-top: 0.2rem; padding: 0.1rem 0.35rem; font-size: 0.68rem; }
+.pitch-control-group { flex: 0 0 96px; min-width: 96px; }
+.pitch-step-buttons { display: flex; justify-content: center; gap: 0.2rem; margin-top: 0.2rem; }
+.pitch-step-buttons .btn { min-width: 30px; padding: 0.05rem 0.3rem; line-height: 1.2; }
 .eq-knobs .deck-fx-knobs .rotary-field { width: 116px; min-width: 116px; flex-basis: 116px; }
 .eq-knobs .deck-fx-knobs .rotary-field .eq-value {
   max-width: 86px;
@@ -285,6 +290,7 @@
 .loop-buttons-B { justify-content: flex-end; text-align: right; }
 .loop-buttons .btn { font-size: 0.75rem; padding: 0.25rem; }
 .loop-buttons .btn[aria-pressed="true"] { background: #075e55; border-color: #03dac6; }
+.loop-buttons .auto-loop-cycle { min-width: 24px; }
 .loop-buttons small { flex-basis: 100%; font-size: 0.65rem; }
 .shared-fx-control { min-width: 0; }
 .shared-fx-control .rotary-field { grid-template-columns: 54px 48px minmax(0, 1fr); gap: 0.25rem; min-width: 0; }

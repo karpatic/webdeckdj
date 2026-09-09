@@ -7,7 +7,7 @@ const formatSignedValue = (value, suffix) => {
   return `${value > 0 ? "+" : ""}${displayValue}${suffix}`;
 };
 
-const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, volume, onVolumeChange, syncControl, timeline, scrollPreview, midiEQRef, fxRack, beatAvailable }) => {
+const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, onPitchAdjust, volume, onVolumeChange, syncControl, timeline, scrollPreview, midiEQRef, fxRack, beatAvailable, globalFxRack, globalBeatAvailable, globalBeatReference }) => {
   const [eq, setEq] = React.useState({ bass: 0, mid: 0, treble: 0 });
   const [killed, setKilled] = React.useState({ bass: false, mid: false, treble: false });
 
@@ -84,18 +84,28 @@ const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, 
       <div className="eq-control-column">
         <div className="eq-knobs">
           <div className="deck-top-knobs mb-1">
-            <RotaryControl
-              id={`deck-${name}-pitch`} label="Pitch"
-              min={-8} max={8} step={0.1} value={pitch}
-              onChange={handlePitchChange}
-              accessibleName={`Deck ${name} Pitch`}
-              formatValue={(value) => formatSignedValue(value, '%')}
-            />
+            <div className="pitch-control-group">
+              <RotaryControl
+                id={`deck-${name}-pitch`} label="Pitch"
+                min={-8} max={8} step={0.1} value={pitch}
+                onChange={handlePitchChange}
+                accessibleName={`Deck ${name} Pitch`}
+                formatValue={(value) => formatSignedValue(value, '%')}
+              />
+              <div className="pitch-step-buttons" aria-label={`Deck ${name} pitch fine adjustment`}>
+                <button type="button" className="btn btn-sm btn-outline-light" aria-label={`Decrease Deck ${name} pitch by 0.1 percentage points`} onClick={() => onPitchAdjust(-0.1)}>−</button>
+                <button type="button" className="btn btn-sm btn-outline-light" aria-label={`Increase Deck ${name} pitch by 0.1 percentage points`} onClick={() => onPitchAdjust(0.1)}>+</button>
+              </div>
+            </div>
             <div className="deck-bpm-control">{bpmControl}</div>
           </div>
           <div className="deck-fx-knobs mb-1">
-            <FxKnob deck={name} slot={0} rack={fxRack} beatAvailable={beatAvailable} />
-            <FxKnob deck={name} slot={1} rack={fxRack} beatAvailable={beatAvailable} />
+            <FxKnob deck={name} slot={0} trackRack={fxRack} trackBeatAvailable={beatAvailable}
+              globalRack={globalFxRack} globalSlot={name === 'A' ? 0 : 2}
+              globalBeatAvailable={globalBeatAvailable} globalBeatReference={globalBeatReference} />
+            <FxKnob deck={name} slot={1} trackRack={fxRack} trackBeatAvailable={beatAvailable}
+              globalRack={globalFxRack} globalSlot={name === 'A' ? 1 : 3}
+              globalBeatAvailable={globalBeatAvailable} globalBeatReference={globalBeatReference} />
           </div>
           {['treble', 'mid', 'bass'].map((band) => (
             <div className="mb-1" key={band}>

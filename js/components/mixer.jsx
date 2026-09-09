@@ -2,7 +2,7 @@ import React from "react";
 import Deck from "./deck.jsx";
 import RotaryControl from "./rotary.jsx";
 
-const emptyMarkers = (trackUrl) => ({ trackUrl, cue: 0, in: null, out: null, active: false, message: "" });
+const emptyMarkers = (trackUrl) => ({ trackUrl, cue: 0, in: null, out: null, active: false, kind: null, autoStartIndex: null, message: "" });
 
 const Mixer = ({ 
   fxSamples,
@@ -30,6 +30,7 @@ const Mixer = ({
   
   // Audio context
   const [audioContext, setAudioContext] = React.useState(null);
+  const [globalFxRack, setGlobalFxRack] = React.useState(null);
   
   // Gain nodes for crossfader control
   const [leftGainNode, setLeftGainNode] = React.useState(null);
@@ -68,6 +69,7 @@ const Mixer = ({
   const [rightBeatMap, setRightBeatMap] = React.useState({ result: null, downbeatIndex: 0 });
   const [leftMarkers, setLeftMarkers] = React.useState(() => emptyMarkers(null));
   const [rightMarkers, setRightMarkers] = React.useState(() => emptyMarkers(null));
+  const [autoLoopBeats, setAutoLoopBeats] = React.useState({ left: 4, right: 4 });
   const [syncStatus, setSyncStatus] = React.useState('');
   const syncRef = React.useRef({ token: 0, rafId: null });
   const manualActionVersionRef = React.useRef({ left: 0, right: 0 });
@@ -101,16 +103,75 @@ const Mixer = ({
 
   const changeDeckPitch = React.useCallback((deck, value, manual) => {
     if (manual) cancelScheduledSync('Sync cancelled by manual pitch change.');
+    let nextValue = Number(value);
+    if (!Number.isFinite(nextValue)) return;
+    nextValue = Math.max(-8, Math.min(8, nextValue));
+    nextValue = Math.round(nextValue * 10) / 10;
     const audio = deck === 'left' ? leftAudioRef.current : rightAudioRef.current;
-    if (audio) window.dj.audio.applyPitchBend(audio, value);
-    if (deck === 'left') setLeftPitch(value);
-    else setRightPitch(value);
+    if (audio) window.dj.audio.applyPitchBend(audio, nextValue);
+    if (deck === 'left') setLeftPitch(nextValue);
+    else setRightPitch(nextValue);
+  }, [cancelScheduledSync]);
+
+  const adjustDeckPitch = React.useCallback((deck, delta) => {
+    cancelScheduledSync('Sync cancelled by manual pitch change.');
+    const setPitch = deck === 'left' ? setLeftPitch : setRightPitch;
+    const audio = deck === 'left' ? leftAudioRef.current : rightAudioRef.current;
+    setPitch(current => {
+      const combined = Number(current) + Number(delta);
+      let nextValue = Math.round(combined * 10) / 10;
+      nextValue = Math.max(-8, Math.min(8, nextValue));
+      if (audio) window.dj.audio.applyPitchBend(audio, nextValue);
+      return nextValue;
+    });
   }, [cancelScheduledSync]);
 
   const handleLeftAnalysisChange = React.useCallback((result) => setLeftAnalysis(result), []);
   const handleRightAnalysisChange = React.useCallback((result) => setRightAnalysis(result), []);
   const handleLeftBeatMapChange = React.useCallback((result, downbeatIndex) => setLeftBeatMap({ result, downbeatIndex }), []);
   const handleRightBeatMapChange = React.useCallback((result, downbeatIndex) => setRightBeatMap({ result, downbeatIndex }), []);
+
+  // Global Beatgrid uses one explicit timing source: Deck A when usable, otherwise Deck B.
+  let globalBeatDeck = null;
+  let globalBeatResult = null;
+  let globalBeatAnchor = null;
+  let globalBeatRate = 0;
+  const leftBeatResult = leftBeatMap && leftBeatMap.result;
+  const leftBeatAnchor = leftBeatResult && leftBeatResult.ticks && leftBeatResult.ticks[leftBeatMap.downbeatIndex];
+  const leftRate = leftAudioRef.current ? Number(leftAudioRef.current.playbackRate) : 0;
+  const leftTimingUsable = Boolean(leftBeatResult && Number.isFinite(leftBeatResult.bpm) && leftBeatResult.bpm > 0 && Number.isFinite(leftBeatAnchor) && leftRate > 0);
+  const rightBeatResult = rightBeatMap && rightBeatMap.result;
+  const rightBeatAnchor = rightBeatResult && rightBeatResult.ticks && rightBeatResult.ticks[rightBeatMap.downbeatIndex];
+  const rightRate = rightAudioRef.current ? Number(rightAudioRef.current.playbackRate) : 0;
+  const rightTimingUsable = Boolean(rightBeatResult && Number.isFinite(rightBeatResult.bpm) && rightBeatResult.bpm > 0 && Number.isFinite(rightBeatAnchor) && rightRate > 0);
+  if (leftTimingUsable) {
+    globalBeatDeck = 'A';
+    globalBeatResult = leftBeatResult;
+    globalBeatAnchor = leftBeatAnchor;
+    globalBeatRate = leftRate;
+  } else if (rightTimingUsable) {
+    globalBeatDeck = 'B';
+    globalBeatResult = rightBeatResult;
+    globalBeatAnchor = rightBeatAnchor;
+    globalBeatRate = rightRate;
+  }
+  const globalBeatAvailable = Boolean(globalFxRack && globalFxRack.hasWorklet && globalBeatDeck);
+  const globalBeatReference = globalBeatDeck ? 'Deck ' + globalBeatDeck : 'no available measured deck';
+  React.useEffect(() => {
+    if (!globalFxRack) return;
+    const sourceAudio = globalBeatDeck === 'A' ? leftAudioRef.current : rightAudioRef.current;
+    if (!globalBeatAvailable || !sourceAudio) {
+      globalFxRack.setBeat(null);
+      return;
+    }
+    globalFxRack.setBeat({
+      bpm: globalBeatResult.bpm * globalBeatRate,
+      sourceBpm: globalBeatResult.bpm,
+      rate: globalBeatRate,
+      anchor: globalBeatAnchor,
+      mediaTime: sourceAudio.currentTime
+    });
+  }, [globalFxRack, globalBeatAvailable, globalBeatDeck, globalBeatResult, globalBeatAnchor, globalBeatRate, leftProgress.currentTime, rightProgress.currentTime]);
 
   React.useEffect(() => {
     if (leftAudioRef.current) window.dj.audio.applyPitchBend(leftAudioRef.current, leftPitch);
@@ -137,16 +198,81 @@ const Mixer = ({
       audio.pause();
       audio.currentTime = Math.min(audio.duration, Math.max(0, markers.cue));
     } else if (action === 'in') {
-      setMarkers(current => ({ ...current, in: position, out: null, active: false, message: '' }));
+      setMarkers(current => ({ ...current, in: position, out: null, active: false, kind: null, autoStartIndex: null, message: '' }));
     } else if (markers.active) {
-      setMarkers(current => ({ ...current, active: false, message: '' }));
+      setMarkers(current => ({ ...current, active: false, kind: null, autoStartIndex: null, message: '' }));
     } else if (markers.in === null || position <= markers.in) {
       setMarkers(current => ({ ...current, message: 'Loop Out must be later than Loop In.' }));
     } else {
-      setMarkers(current => ({ ...current, out: position, active: true, message: '' }));
+      setMarkers(current => ({ ...current, out: position, active: true, kind: 'manual', autoStartIndex: null, message: '' }));
       // Capturing Out starts at In without changing the paused state.
       audio.currentTime = markers.in;
     }
+  };
+
+  const getAutoLoopAvailability = (deck, beats, startIndex) => {
+    const isLeft = deck === 'left';
+    const audio = isLeft ? leftAudioRef.current : rightAudioRef.current;
+    const beatMap = isLeft ? leftBeatMap : rightBeatMap;
+    if (!audio) return { enabled: false, reason: 'Load this deck before using Auto Loop.', plan: null };
+    return window.dj.beat.getAutoLoopPlan({
+      result: beatMap.result,
+      beats: beats,
+      duration: audio.duration,
+      currentTime: audio.currentTime,
+      startIndex: startIndex
+    });
+  };
+
+  const toggleAutoLoop = (deck) => {
+    cancelScheduledSync('Sync cancelled by manual transport change.');
+    manualActionVersionRef.current[deck] += 1;
+    const isLeft = deck === 'left';
+    const audio = isLeft ? leftAudioRef.current : rightAudioRef.current;
+    const markers = isLeft ? leftMarkers : rightMarkers;
+    const setMarkers = isLeft ? setLeftMarkers : setRightMarkers;
+    if (!audio) return;
+    if (markers.active && markers.kind === 'auto') {
+      setMarkers(current => ({ ...current, active: false, kind: null, autoStartIndex: null, message: '' }));
+      return;
+    }
+    const beats = autoLoopBeats[deck];
+    const availability = getAutoLoopAvailability(deck, beats, null);
+    if (!availability.enabled) {
+      setMarkers(current => ({ ...current, message: availability.reason }));
+      return;
+    }
+    const plan = availability.plan;
+    setMarkers(current => ({ ...current, in: plan.start, out: plan.end, active: true, kind: 'auto', autoStartIndex: plan.startIndex, message: '' }));
+    audio.currentTime = plan.start;
+  };
+
+  const cycleAutoLoop = (deck) => {
+    const currentBeats = autoLoopBeats[deck];
+    let nextBeats = 4;
+    if (currentBeats === 4) nextBeats = 8;
+    else if (currentBeats === 8) nextBeats = 16;
+    const isLeft = deck === 'left';
+    const markers = isLeft ? leftMarkers : rightMarkers;
+    const setMarkers = isLeft ? setLeftMarkers : setRightMarkers;
+    const audio = isLeft ? leftAudioRef.current : rightAudioRef.current;
+    if (markers.active && markers.kind === 'auto') {
+      const availability = getAutoLoopAvailability(deck, nextBeats, markers.autoStartIndex);
+      if (!availability.enabled) {
+        setMarkers(current => ({ ...current, message: availability.reason }));
+        return;
+      }
+      const plan = availability.plan;
+      setMarkers(current => ({ ...current, in: plan.start, out: plan.end, autoStartIndex: plan.startIndex, message: '' }));
+      let outside = false;
+      if (audio) outside = audio.currentTime < plan.start || audio.currentTime >= plan.end;
+      if (outside) audio.currentTime = plan.start;
+    }
+    setAutoLoopBeats(current => {
+      const next = { ...current };
+      next[deck] = nextBeats;
+      return next;
+    });
   };
 
   // One deadline per actively playing loop; no new RAF or idle polling.
@@ -166,7 +292,7 @@ const Mixer = ({
         if (disposed) return;
         clearDeadline();
         disposed = true;
-        setMarkers(current => ({ ...current, active: false }));
+        setMarkers(current => ({ ...current, active: false, kind: null, autoStartIndex: null }));
       };
       const syncLoop = () => {
         clearDeadline();
@@ -228,6 +354,49 @@ const Mixer = ({
     initializeAudio();
     return () => {};
   }, []);
+
+  // One true master path. Deck gains sum into this four-slot serial rack; Samples never enter it.
+  React.useEffect(() => {
+    if (!audioContext) return undefined;
+    let cancelled = false;
+    let rack = null;
+    window.webDeckFxReady.then(module => module.createMasterFxRack(audioContext)).then(created => {
+      if (cancelled) {
+        created.destroy();
+        return;
+      }
+      created.output.connect(audioContext.destination);
+      rack = created;
+      setGlobalFxRack(created);
+    }).catch(error => console.error('Could not initialize Global FX:', error));
+    return () => {
+      cancelled = true;
+      setGlobalFxRack(current => current === rack ? null : current);
+      if (!rack) return;
+      try { rack.output.disconnect(audioContext.destination); } catch (error) { /* Already detached. */ }
+      rack.destroy();
+    };
+  }, [audioContext]);
+
+  const routeDeckGainToMaster = React.useCallback((gain) => {
+    if (!gain || !globalFxRack || !audioContext) return undefined;
+    try {
+      gain.disconnect(audioContext.destination);
+      gain.connect(globalFxRack.input);
+    } catch (error) {
+      try { gain.disconnect(globalFxRack.input); } catch (disconnectError) { /* Not connected. */ }
+      try { gain.connect(audioContext.destination); } catch (connectError) { /* Existing direct path remains. */ }
+      console.error('Could not route a deck through Global FX:', error);
+      return undefined;
+    }
+    return () => {
+      try { gain.disconnect(globalFxRack.input); } catch (error) { /* Already detached. */ }
+      try { gain.connect(audioContext.destination); } catch (error) { /* Already restored. */ }
+    };
+  }, [globalFxRack, audioContext]);
+
+  React.useEffect(() => routeDeckGainToMaster(leftGainNode), [leftGainNode, routeDeckGainToMaster]);
+  React.useEffect(() => routeDeckGainToMaster(rightGainNode), [rightGainNode, routeDeckGainToMaster]);
 
   // Store gain nodes in our ref object for direct access
   React.useEffect(() => {
@@ -422,7 +591,7 @@ const Mixer = ({
     const handleRateChange = () => {
       const rate = leftAudio.playbackRate;
       const difference = rate - 1;
-      if (Number.isFinite(rate) && rate > 0) setLeftPitch(difference * 100);
+      if (Number.isFinite(rate) && rate > 0) setLeftPitch(Math.round(difference * 1000) / 10);
     };
     leftAudio.addEventListener('ratechange', handleRateChange);
     leftAudio.addEventListener('timeupdate', syncProgress);
@@ -526,7 +695,7 @@ const Mixer = ({
     const handleRateChange = () => {
       const rate = rightAudio.playbackRate;
       const difference = rate - 1;
-      if (Number.isFinite(rate) && rate > 0) setRightPitch(difference * 100);
+      if (Number.isFinite(rate) && rate > 0) setRightPitch(Math.round(difference * 1000) / 10);
     };
     rightAudio.addEventListener('ratechange', handleRateChange);
     rightAudio.addEventListener('timeupdate', syncProgress);
@@ -689,6 +858,14 @@ const Mixer = ({
   const selectedFx = fxSamples[selectedFxIndex];
   const leftReady = Boolean(leftTrack) && leftProgress.duration > 0;
   const rightReady = Boolean(rightTrack) && rightProgress.duration > 0;
+  const leftAutoLoopAvailability = getAutoLoopAvailability('left', autoLoopBeats.left, null);
+  const rightAutoLoopAvailability = getAutoLoopAvailability('right', autoLoopBeats.right, null);
+  const leftAutoLoopActive = leftMarkers.active && leftMarkers.kind === 'auto';
+  const rightAutoLoopActive = rightMarkers.active && rightMarkers.kind === 'auto';
+  let leftAutoLoopDisabled = !leftReady;
+  let rightAutoLoopDisabled = !rightReady;
+  if (!leftAutoLoopAvailability.enabled && !leftAutoLoopActive) leftAutoLoopDisabled = true;
+  if (!rightAutoLoopAvailability.enabled && !rightAutoLoopActive) rightAutoLoopDisabled = true;
   let visibleSyncStatus = syncStatus;
   if (!visibleSyncStatus && !syncAToB.enabled) visibleSyncStatus = syncAToB.reason;
 
@@ -705,6 +882,10 @@ const Mixer = ({
       }
       if (action.type === 'pitch') {
         changeDeckPitch(action.deck, action.value, true);
+        return;
+      }
+      if (action.type === 'pitchStep') {
+        adjustDeckPitch(action.deck, action.delta);
         return;
       }
       if (action.type === 'browse-move') {
@@ -820,12 +1001,16 @@ const Mixer = ({
                 onClick={() => startSync('left')}>Sync</button>
             )}
             onPitchChange={(value) => changeDeckPitch('left', value, true)}
+            onPitchAdjust={(delta) => adjustDeckPitch('left', delta)}
             onAnalysisChange={handleLeftAnalysisChange}
             onBeatMapChange={handleLeftBeatMapChange}
             beatMap={leftBeatMap}
             updateProgress={(currentTime, duration) => updateProgress("left", currentTime, duration)}
             formatTime={formatTime}
             onAnalyserCreated={handleLeftAnalyserCreated}
+            globalFxRack={globalFxRack}
+            globalBeatAvailable={globalBeatAvailable}
+            globalBeatReference={globalBeatReference}
           />
         </div>
 
@@ -852,12 +1037,16 @@ const Mixer = ({
                 onClick={() => startSync('right')}>Sync</button>
             )}
             onPitchChange={(value) => changeDeckPitch('right', value, true)}
+            onPitchAdjust={(delta) => adjustDeckPitch('right', delta)}
             onAnalysisChange={handleRightAnalysisChange}
             onBeatMapChange={handleRightBeatMapChange}
             beatMap={rightBeatMap}
             updateProgress={(currentTime, duration) => updateProgress("right", currentTime, duration)}
             formatTime={formatTime}
             onAnalyserCreated={handleRightAnalyserCreated}
+            globalFxRack={globalFxRack}
+            globalBeatAvailable={globalBeatAvailable}
+            globalBeatReference={globalBeatReference}
           />
         </div>
       </div>
@@ -869,6 +1058,13 @@ const Mixer = ({
           <div className="loop-buttons">
             <button id="deck-A-loop-in" type="button" className="btn btn-sm btn-outline-light" disabled={!leftReady} aria-label="Deck A Loop In" title="Save Deck A loop start; clears the previous loop" onClick={() => transportAction('left', 'in')}>In A</button>
             <button id="deck-A-loop-out" type="button" className="btn btn-sm btn-outline-light" disabled={!leftReady} aria-label="Deck A Loop Out" aria-pressed={leftMarkers.active} title={leftMarkers.active ? 'Exit Deck A loop' : 'Save a later end and enable Deck A loop; press again to exit'} onClick={() => transportAction('left', 'out')}>{leftMarkers.active ? 'Loop A ●' : 'Out A'}</button>
+            <button id="deck-A-auto-loop" type="button" className="btn btn-sm btn-outline-info" disabled={leftAutoLoopDisabled}
+              aria-label={`Deck A Auto Loop, ${autoLoopBeats.left} measured beats`} aria-pressed={leftAutoLoopActive}
+              title={leftAutoLoopActive ? 'Exit Deck A Auto Loop' : leftAutoLoopAvailability.enabled ? `Start a ${autoLoopBeats.left}-beat loop at the current measured beat` : leftAutoLoopAvailability.reason}
+              onClick={() => toggleAutoLoop('left')}>Auto {autoLoopBeats.left}{leftAutoLoopActive ? ' ●' : ''}</button>
+            <button type="button" className="btn btn-sm btn-outline-light auto-loop-cycle" disabled={!leftReady}
+              aria-label="Cycle Deck A Auto Loop length: 4, 8, then 16 measured beats" title="Choose the next Auto Loop length"
+              onClick={() => cycleAutoLoop('left')}>›</button>
             <small className="loop-status" title="Deck A loop positions">{leftMarkers.in === null ? 'No loop' : `In ${formatTime(leftMarkers.in)} / Out ${leftMarkers.out === null ? '—' : formatTime(leftMarkers.out)}`}</small>
             {leftMarkers.message && <small role="status">{leftMarkers.message}</small>}
           </div>
@@ -887,6 +1083,13 @@ const Mixer = ({
           <div className="loop-buttons loop-buttons-B">
             <button id="deck-B-loop-in" type="button" className="btn btn-sm btn-outline-light" disabled={!rightReady} aria-label="Deck B Loop In" title="Save Deck B loop start; clears the previous loop" onClick={() => transportAction('right', 'in')}>In B</button>
             <button id="deck-B-loop-out" type="button" className="btn btn-sm btn-outline-light" disabled={!rightReady} aria-label="Deck B Loop Out" aria-pressed={rightMarkers.active} title={rightMarkers.active ? 'Exit Deck B loop' : 'Save a later end and enable Deck B loop; press again to exit'} onClick={() => transportAction('right', 'out')}>{rightMarkers.active ? 'Loop B ●' : 'Out B'}</button>
+            <button id="deck-B-auto-loop" type="button" className="btn btn-sm btn-outline-info" disabled={rightAutoLoopDisabled}
+              aria-label={`Deck B Auto Loop, ${autoLoopBeats.right} measured beats`} aria-pressed={rightAutoLoopActive}
+              title={rightAutoLoopActive ? 'Exit Deck B Auto Loop' : rightAutoLoopAvailability.enabled ? `Start a ${autoLoopBeats.right}-beat loop at the current measured beat` : rightAutoLoopAvailability.reason}
+              onClick={() => toggleAutoLoop('right')}>Auto {autoLoopBeats.right}{rightAutoLoopActive ? ' ●' : ''}</button>
+            <button type="button" className="btn btn-sm btn-outline-light auto-loop-cycle" disabled={!rightReady}
+              aria-label="Cycle Deck B Auto Loop length: 4, 8, then 16 measured beats" title="Choose the next Auto Loop length"
+              onClick={() => cycleAutoLoop('right')}>›</button>
             <small className="loop-status" title="Deck B loop positions">{rightMarkers.in === null ? 'No loop' : `In ${formatTime(rightMarkers.in)} / Out ${rightMarkers.out === null ? '—' : formatTime(rightMarkers.out)}`}</small>
             {rightMarkers.message && <small role="status">{rightMarkers.message}</small>}
           </div>

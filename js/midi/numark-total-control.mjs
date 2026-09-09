@@ -1,6 +1,6 @@
 // Input assignments: pages/webmidi/controllers/numark-total-control.js:25-42.
 // Status/channel decoding: pages/webmidi/ui.js:51-60. No MIDI output or SysEx.
-// EQ/loop INPUT assignments verified against Mixxx Numark Total Control.midi.xml;
+// EQ/loop/pitch-step INPUT assignments verified against Mixxx Numark Total Control.midi.xml;
 // see docs/numark-midi.md for URL/hash. Output/LED assignments are not inputs.
 const notes = new Map([
   [67, { type: 'play', deck: 'left' }],
@@ -18,7 +18,12 @@ const notes = new Map([
   [0x49, { type: 'loopIn', deck: 'left' }],
   [0x4a, { type: 'loopOut', deck: 'left' }],
   [0x4d, { type: 'loopIn', deck: 'right' }],
-  [0x4e, { type: 'loopOut', deck: 'right' }]
+  [0x4e, { type: 'loopOut', deck: 'right' }],
+  // Verified Mixxx INPUT rows: physical pitch-bend minus/plus buttons.
+  [0x41, { type: 'pitchStep', deck: 'left', delta: -0.1 }],
+  [0x42, { type: 'pitchStep', deck: 'left', delta: 0.1 }],
+  [0x45, { type: 'pitchStep', deck: 'right', delta: -0.1 }],
+  [0x46, { type: 'pitchStep', deck: 'right', delta: 0.1 }]
 ]);
 const controllers = new Map([
   [8, { type: 'volume', deck: 'left' }],

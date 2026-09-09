@@ -15,6 +15,7 @@ const Deck = ({
   progress,
   pitch,
   onPitchChange,
+  onPitchAdjust,
   volume,
   onVolumeChange,
   midiEQRef,
@@ -26,7 +27,10 @@ const Deck = ({
   formatTime,
   gainNode,
   setGainNode,
-  onAnalyserCreated
+  onAnalyserCreated,
+  globalFxRack,
+  globalBeatAvailable,
+  globalBeatReference
 }) => {
   // Audio processing nodes
   const [sourceNode, setSourceNode] = React.useState(null); 
@@ -277,11 +281,15 @@ const Deck = ({
                 audioRef={audioRef}
                 pitch={pitch}
                 onPitchChange={onPitchChange}
+                onPitchAdjust={onPitchAdjust}
                 volume={volume}
                 onVolumeChange={onVolumeChange}
                 midiEQRef={midiEQRef}
                 fxRack={fxRack}
                 beatAvailable={beatAvailable}
+                globalFxRack={globalFxRack}
+                globalBeatAvailable={globalBeatAvailable}
+                globalBeatReference={globalBeatReference}
                 syncControl={syncControl}
                 timeline={(
                   <Track
