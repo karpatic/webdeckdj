@@ -74,17 +74,19 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
         onClick={() => openFolder(entry.path)}>{entry.path ? '📁 ' : ''}{String(entry.name)}</button>;
     }
 
-    const actionsOpen = isMobileLayout && mobileActionKey === rowKey;
+    const supportsDeckLoad = selectedDirectory.type !== 'fx';
+    const actionsOpen = isMobileLayout && supportsDeckLoad && mobileActionKey === rowKey;
     const actionId = `crate-track-actions-${index}`;
     const selectTrack = () => {
       setBrowseFocus('files');
       setSelectedFileIndex(index);
-      setMobileActionKey(current => isMobileLayout && current !== rowKey ? rowKey : null);
+      setMobileActionKey(current => isMobileLayout && supportsDeckLoad && current !== rowKey ? rowKey : null);
     };
     const trackName = String(entry.name);
     return <div key={rowKey} className="crate-track-row" data-mobile-action-key={rowKey}>
-      <button type="button" aria-pressed={index === selectedFileIndex} aria-expanded={isMobileLayout ? actionsOpen : undefined}
-        aria-controls={isMobileLayout ? actionId : undefined}
+      <button type="button" aria-pressed={index === selectedFileIndex}
+        aria-expanded={isMobileLayout && supportsDeckLoad ? actionsOpen : undefined}
+        aria-controls={isMobileLayout && supportsDeckLoad ? actionId : undefined}
         className={`list-group-item ${index === selectedFileIndex ? 'active' : ''}`}
         onFocus={() => {
           setBrowseFocus('files');
