@@ -29,6 +29,9 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
   const [selectedFileIndex, setSelectedFileIndex] = React.useState(0);
   const [browseFocus, setBrowseFocus] = React.useState('files');
   const [folderPath, setFolderPath] = React.useState('');
+  const [mobileActionKey, setMobileActionKey] = React.useState(null);
+  const [isMobileLayout, setIsMobileLayout] = React.useState(() => window.matchMedia('(max-width: 1023px)').matches);
+  const pointerGestureRef = React.useRef(null);
   const selectedDirectory = directoryEntries.find(dir => dir.name === selectedDirectoryKey) || directoryEntries[0];
   // A view over the existing root record: indexes still address its original files/IDs.
   const folders = new Map();
@@ -55,20 +58,83 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
     visibleEntries.unshift({ kind: 'folder', name: '← Parent folder', path: parentParts.join('/') });
   }
   const openFolder = (path) => {
+    setMobileActionKey(null);
     setFolderPath(path);
     setBrowseFocus('files');
     setSelectedFileIndex(0);
     if (browserRef.current) browserRef.current.focus();
   };
   const trackRows = visibleEntries.map((entry, index) => {
-    return <button key={`${entry.kind}-${entry.path || entry.fileIndex}`} type="button" aria-pressed={index === selectedFileIndex}
-      className={`list-group-item ${index === selectedFileIndex ? 'active' : ''}`}
-      onFocus={() => { setBrowseFocus('files'); setSelectedFileIndex(index); }}
-      onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); actions.enterSelection(); } }}
-      onClick={() => {
-        if (entry.kind === 'folder') openFolder(entry.path);
-        else { setBrowseFocus('files'); setSelectedFileIndex(index); }
-      }}>{entry.kind === 'folder' && entry.path ? '📁 ' : ''}{String(entry.name)}</button>;
+    const rowKey = `${selectedDirectory.name}:${folderPath}:${entry.kind}:${entry.path || entry.fileIndex}`;
+    if (entry.kind === 'folder') {
+      return <button key={rowKey} type="button" aria-pressed={index === selectedFileIndex}
+        className={`list-group-item ${index === selectedFileIndex ? 'active' : ''}`}
+        onFocus={() => { setMobileActionKey(null); setBrowseFocus('files'); setSelectedFileIndex(index); }}
+        onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); actions.enterSelection(); } }}
+        onClick={() => openFolder(entry.path)}>{entry.path ? '📁 ' : ''}{String(entry.name)}</button>;
+    }
+
+    const actionsOpen = isMobileLayout && mobileActionKey === rowKey;
+    const actionId = `crate-track-actions-${index}`;
+    const selectTrack = () => {
+      setBrowseFocus('files');
+      setSelectedFileIndex(index);
+      setMobileActionKey(current => isMobileLayout && current !== rowKey ? rowKey : null);
+    };
+    const trackName = String(entry.name);
+    return <div key={rowKey} className="crate-track-row" data-mobile-action-key={rowKey}>
+      <button type="button" aria-pressed={index === selectedFileIndex} aria-expanded={isMobileLayout ? actionsOpen : undefined}
+        aria-controls={isMobileLayout ? actionId : undefined}
+        className={`list-group-item ${index === selectedFileIndex ? 'active' : ''}`}
+        onFocus={() => {
+          setBrowseFocus('files');
+          setSelectedFileIndex(index);
+          if (mobileActionKey !== rowKey) setMobileActionKey(null);
+        }}
+        onPointerDown={event => {
+          pointerGestureRef.current = { key: rowKey, x: event.clientX, y: event.clientY, moved: false };
+        }}
+        onPointerMove={event => {
+          const gesture = pointerGestureRef.current;
+          if (gesture && gesture.key === rowKey
+            && (Math.abs(event.clientX - gesture.x) > 10 || Math.abs(event.clientY - gesture.y) > 10)) {
+            gesture.moved = true;
+          }
+        }}
+        onPointerCancel={() => { pointerGestureRef.current = null; }}
+        onPointerUp={() => {
+          const gesture = pointerGestureRef.current;
+          window.setTimeout(() => {
+            if (pointerGestureRef.current === gesture) pointerGestureRef.current = null;
+          }, 0);
+        }}
+        onKeyDown={event => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            selectTrack();
+          }
+        }}
+        onClick={event => {
+          const gesture = pointerGestureRef.current;
+          pointerGestureRef.current = null;
+          if (gesture && gesture.key === rowKey && gesture.moved) {
+            event.preventDefault();
+            return;
+          }
+          selectTrack();
+        }}><span className="crate-track-title">{trackName}</span></button>
+      {actionsOpen && <div id={actionId} className="crate-track-actions" role="group" aria-label={`Load ${trackName}`}
+        onClick={() => setMobileActionKey(null)}>
+        <button type="button" className="btn btn-primary" aria-label={`Load left to Deck A: ${trackName}`}
+          title="Load left — Deck A" onClick={event => { event.stopPropagation(); loadSelectedTrack('left'); }}>
+          <i className="bi bi-box-arrow-in-left" aria-hidden="true"></i>
+        </button>
+        <button type="button" className="btn btn-success" aria-label={`Load right to Deck B: ${trackName}`}
+          title="Load right — Deck B" onClick={event => { event.stopPropagation(); loadSelectedTrack('right'); }}>
+          <i className="bi bi-box-arrow-in-right" aria-hidden="true"></i>
+        </button>
+      </div>}
+    </div>;
   });
 
   React.useEffect(() => {
@@ -452,6 +518,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
   };
 
   const loadSelectedTrack = (deck) => {
+    setMobileActionKey(null);
     const entry = visibleEntries[selectedFileIndex];
     const file = entry && entry.kind === 'file' ? entry.file : null;
     if (browseFocus !== 'files') return;
@@ -483,8 +550,30 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
     setFolderPath('');
   }, [directoryEntries, selectedDirectory, selectedDirectoryKey]);
 
+  React.useEffect(() => {
+    const query = window.matchMedia('(max-width: 1023px)');
+    const updateLayout = () => {
+      setIsMobileLayout(query.matches);
+      if (!query.matches) setMobileActionKey(null);
+    };
+    updateLayout();
+    query.addEventListener('change', updateLayout);
+    return () => query.removeEventListener('change', updateLayout);
+  }, []);
+
+  React.useEffect(() => {
+    if (!mobileActionKey) return undefined;
+    const dismissOutside = (event) => {
+      const row = event.target.closest && event.target.closest('.crate-track-row');
+      if (!row || row.dataset.mobileActionKey !== mobileActionKey) setMobileActionKey(null);
+    };
+    document.addEventListener('pointerdown', dismissOutside);
+    return () => document.removeEventListener('pointerdown', dismissOutside);
+  }, [mobileActionKey]);
+
   const actions = {
     showDirectories: () => {
+      setMobileActionKey(null);
       setFolderPath('');
       if (browserRef.current) browserRef.current.focus();
       setBrowseFocus('directories');
@@ -494,6 +583,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
       setSelectedFileIndex(0);
     },
     moveSelection: (delta) => {
+      setMobileActionKey(null);
       if (browseFocus === 'directories') {
         const length = directoryEntries.length;
         if (!length) return;
@@ -537,7 +627,8 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
       actions.enterSelection();
     } else if (event.key === 'Escape') {
       event.preventDefault();
-      actions.showDirectories();
+      if (mobileActionKey) setMobileActionKey(null);
+      else actions.showDirectories();
     } else if (event.key === 'ArrowLeft') {
       event.preventDefault();
       if (folderPath) openFolder(visibleEntries[0].path);
@@ -598,7 +689,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
           <div className="crate-directories" aria-label="Folders" data-browse-focus={browseFocus === 'directories'}>
             {directoryEntries.map((dir, index) => (
               <button key={index} type="button" className={`list-group-item list-group-item-action ${selectedDirectory && selectedDirectory.name === dir.name ? 'active' : ''}`}
-                onFocus={() => { setBrowseFocus('directories'); setFolderPath(''); setSelectedDirectoryKey(dir.name); setSelectedFileIndex(0); }}
+                onFocus={() => { setMobileActionKey(null); setBrowseFocus('directories'); setFolderPath(''); setSelectedDirectoryKey(dir.name); setSelectedFileIndex(0); }}
                 onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); actions.enterSelection(); } }}
                 onClick={() => { openFolder(''); setSelectedDirectoryKey(dir.name); }}>
                 {String(dir.label || dir.name)}
