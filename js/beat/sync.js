@@ -27,6 +27,37 @@
     return { enabled: false, reason: reason, plan: null };
   }
 
+  // A completed one-shot alignment stays visibly active until an owning deck action
+  // invalidates it. Keeping this tiny state machine outside React makes that lifecycle
+  // explicit and directly testable; pending analysis/alignment never activates it.
+  function createSyncActivity(onChange) {
+    let activeDeck = null;
+    let destroyed = false;
+    const notify = typeof onChange === 'function' ? onChange : function () {};
+
+    return {
+      activate: function (deck) {
+        if (destroyed || (deck !== 'left' && deck !== 'right')) return false;
+        if (activeDeck === deck) return true;
+        activeDeck = deck;
+        notify(activeDeck);
+        return true;
+      },
+      clear: function () {
+        if (destroyed || activeDeck === null) return false;
+        activeDeck = null;
+        notify(null);
+        return true;
+      },
+      getActiveDeck: function () { return destroyed ? null : activeDeck; },
+      isActive: function (deck) { return !destroyed && activeDeck === deck; },
+      destroy: function () {
+        destroyed = true;
+        activeDeck = null;
+      }
+    };
+  }
+
   function getAutoLoopPlan(options) {
     const result = options.result;
     const beats = Number(options.beats);
@@ -133,4 +164,5 @@
   beat.findNextTick = findNextTick;
   beat.getSyncPlan = getSyncPlan;
   beat.getAutoLoopPlan = getAutoLoopPlan;
+  beat.createSyncActivity = createSyncActivity;
 }(window));

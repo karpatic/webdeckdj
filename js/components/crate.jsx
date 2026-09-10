@@ -656,7 +656,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
   const selectedSampleId = selectedDirectory.fileIds ? selectedDirectory.fileIds[selectedSourceIndex] : null;
 
   return (
-    <div className="card mb-4 bg-transparent">
+    <div className="card bg-transparent">
       <div className="card-header"><h5>Music Crate</h5></div>
       <div className="card-body">
         <div className="d-flex flex-wrap gap-2 mb-3">

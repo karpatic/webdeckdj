@@ -74,6 +74,7 @@ export const TOTAL_CONTROL_APP_LED_NOTES = Object.freeze({
   left: Object.freeze({
     samplePlaying: 0x30,
     fxStrengthMode: Object.freeze([0x33, 0x31]),
+    pitchStep: Object.freeze({ decrease: 0x38, increase: 0x39 }),
     loopInSet: 0x3a,
     loopActive: 0x3b,
     cueAt: 0x3c,
@@ -85,6 +86,7 @@ export const TOTAL_CONTROL_APP_LED_NOTES = Object.freeze({
   right: Object.freeze({
     fxStrengthMode: Object.freeze([0x44, 0x45]),
     samplePlaying: 0x47,
+    pitchStep: Object.freeze({ decrease: 0x48, increase: 0x49 }),
     loopInSet: 0x4a,
     loopActive: 0x4b,
     cueAt: 0x4c,
@@ -96,8 +98,10 @@ export const TOTAL_CONTROL_APP_LED_NOTES = Object.freeze({
   directoryMode: 0x56
 });
 
-// Pure app-state projection used by the adapter and direct tests. Unmapped controls and
-// momentary actions have no persistent app state, so their verified LEDs remain off.
+export const TOTAL_CONTROL_PITCH_STEP_PULSE_MS = 180;
+
+// Pure persistent app-state projection used by the adapter and direct tests. Momentary
+// pitch-step LEDs are layered on by the adapter and therefore begin off in this snapshot.
 export function getTotalControlLedState(appState = {}) {
   const state = new Map(TOTAL_CONTROL_LED_NOTES.map(note => [note, false]));
   const decks = appState.decks || {};
@@ -183,7 +187,7 @@ export function decodeTotalControl(data) {
 }
 
 // A press is one action until a matching release. Reset on port detach/reconnect.
-export function createTotalControlDispatcher(onAction) {
+export function createTotalControlDispatcher(onAction, onPitchStepState) {
   const held = new Set();
   const ccValues = new Map();
   return {
@@ -196,7 +200,11 @@ export function createTotalControlDispatcher(onAction) {
           Number.isInteger(number) && number >= 0 && number <= 127 &&
           Number.isInteger(value) && value >= 0 && value <= 127 &&
           (family === 0x80 || (family === 0x90 && value === 0))) {
-        held.delete(key);
+        const wasHeld = held.delete(key);
+        const releasedAction = notes.get(number);
+        if (wasHeld && releasedAction?.type === 'pitchStep' && onPitchStepState) {
+          onPitchStepState({ ...releasedAction, active: false, inputKey: key });
+        }
         return false;
       }
       const action = decodeTotalControl(data);
@@ -204,6 +212,9 @@ export function createTotalControlDispatcher(onAction) {
       if (family === 0x90) {
         if (held.has(key)) return false;
         held.add(key);
+        if (action.type === 'pitchStep' && onPitchStepState) {
+          onPitchStepState({ ...action, active: true, inputKey: key });
+        }
       } else {
         if (action.type === 'browse-move' || action.type === 'sampleMove' || action.type === 'fxvalue' || action.type === 'jog') {
           onAction(action);
@@ -215,7 +226,16 @@ export function createTotalControlDispatcher(onAction) {
       onAction(action);
       return true;
     },
-    reset() { held.clear(); ccValues.clear(); }
+    reset() {
+      if (onPitchStepState) {
+        held.forEach(key => {
+          const action = notes.get(key % 128);
+          if (action?.type === 'pitchStep') onPitchStepState({ ...action, active: false, inputKey: key });
+        });
+      }
+      held.clear();
+      ccValues.clear();
+    }
   };
 }
 
@@ -231,10 +251,80 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
   let inputBinding = null;
   let outputBinding = null;
   let desiredLedState = getTotalControlLedState();
+  const pitchStepSources = new Map();
+  const pitchStepPulseTimers = new Map();
   let generation = 0;
   let destroyed = false;
   const portOperations = new WeakMap();
-  const dispatcher = createTotalControlDispatcher(action => handlers.onAction?.(action));
+  const setTimer = typeof environment.setTimeout === 'function'
+    ? environment.setTimeout.bind(environment)
+    : globalThis.setTimeout.bind(globalThis);
+  const clearTimer = typeof environment.clearTimeout === 'function'
+    ? environment.clearTimeout.bind(environment)
+    : globalThis.clearTimeout.bind(globalThis);
+
+  function getPitchStepDescriptor(deck, delta) {
+    if (deck !== 'left' && deck !== 'right') return null;
+    const direction = Number(delta) < 0 ? 'decrease' : Number(delta) > 0 ? 'increase' : null;
+    if (!direction) return null;
+    return { deck, delta: direction === 'decrease' ? -0.1 : 0.1, direction,
+      note: TOTAL_CONTROL_APP_LED_NOTES[deck].pitchStep[direction] };
+  }
+
+  function effectiveLedState(note) {
+    return desiredLedState.get(note) === true || Boolean(pitchStepSources.get(note)?.size);
+  }
+
+  function publishPitchStep(descriptor, active) {
+    if (!destroyed) handlers.onPitchStepFeedback?.({
+      deck: descriptor.deck,
+      delta: descriptor.delta,
+      direction: descriptor.direction,
+      active
+    });
+  }
+
+  function setPitchStepSource(descriptor, source, active) {
+    const previous = Boolean(pitchStepSources.get(descriptor.note)?.size);
+    let sources = pitchStepSources.get(descriptor.note);
+    if (active) {
+      if (!sources) {
+        sources = new Set();
+        pitchStepSources.set(descriptor.note, sources);
+      }
+      sources.add(source);
+    } else if (sources) {
+      sources.delete(source);
+      if (!sources.size) pitchStepSources.delete(descriptor.note);
+    }
+    const current = Boolean(pitchStepSources.get(descriptor.note)?.size);
+    if (current === previous) return false;
+    publishPitchStep(descriptor, current);
+    if (outputBinding?.ready) syncLights(outputBinding);
+    return true;
+  }
+
+  function clearPitchStepFeedback() {
+    pitchStepPulseTimers.forEach(timer => clearTimer(timer));
+    pitchStepPulseTimers.clear();
+    const activeNotes = Array.from(pitchStepSources.keys());
+    pitchStepSources.clear();
+    activeNotes.forEach(note => {
+      ['left', 'right'].forEach(deck => {
+        const output = TOTAL_CONTROL_APP_LED_NOTES[deck].pitchStep;
+        const direction = output.decrease === note ? 'decrease' : output.increase === note ? 'increase' : null;
+        if (direction) publishPitchStep(getPitchStepDescriptor(deck, direction === 'decrease' ? -0.1 : 0.1), false);
+      });
+    });
+  }
+
+  const dispatcher = createTotalControlDispatcher(
+    action => handlers.onAction?.(action),
+    event => {
+      const descriptor = getPitchStepDescriptor(event.deck, event.delta);
+      if (descriptor) setPitchStepSource(descriptor, `midi:${event.inputKey}`, event.active);
+    }
+  );
 
   function publish(code, message, input = null, inputs = []) {
     status = { code, message, input, inputs, output: lighting.output, lighting };
@@ -267,7 +357,8 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
   function syncLights(current) {
     if (!current?.ready || outputBinding !== current || current.port.state !== 'connected') return false;
     let succeeded = true;
-    desiredLedState.forEach((enabled, note) => {
+    desiredLedState.forEach((persistentEnabled, note) => {
+      const enabled = persistentEnabled || effectiveLedState(note);
       if (current.sent.get(note) === enabled) return;
       try {
         current.port.send([0x90, note, enabled ? 0x7f : 0x00]);
@@ -408,6 +499,7 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
     if (access) access.removeEventListener('statechange', reconcile);
     access = null;
     detachOutput();
+    clearPitchStepFeedback();
     detachInput();
     selectedId = null;
   }
@@ -434,6 +526,32 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
       if (destroyed) return;
       desiredLedState = getTotalControlLedState(next);
       if (outputBinding?.ready) syncLights(outputBinding);
+    },
+    pulsePitchStep(deck, delta, duration = TOTAL_CONTROL_PITCH_STEP_PULSE_MS) {
+      if (destroyed) return false;
+      const descriptor = getPitchStepDescriptor(deck, delta);
+      if (!descriptor) return false;
+      const previousTimer = pitchStepPulseTimers.get(descriptor.note);
+      if (previousTimer !== undefined) clearTimer(previousTimer);
+      setPitchStepSource(descriptor, 'gui', true);
+      const milliseconds = Number.isFinite(duration) && duration >= 0 ? duration : TOTAL_CONTROL_PITCH_STEP_PULSE_MS;
+      const timer = setTimer(() => {
+        if (pitchStepPulseTimers.get(descriptor.note) !== timer) return;
+        pitchStepPulseTimers.delete(descriptor.note);
+        setPitchStepSource(descriptor, 'gui', false);
+      }, milliseconds);
+      pitchStepPulseTimers.set(descriptor.note, timer);
+      return true;
+    },
+    clearPitchStep(deck, delta) {
+      if (destroyed) return false;
+      const descriptor = getPitchStepDescriptor(deck, delta);
+      if (!descriptor) return false;
+      const timer = pitchStepPulseTimers.get(descriptor.note);
+      if (timer !== undefined) clearTimer(timer);
+      pitchStepPulseTimers.delete(descriptor.note);
+      setPitchStepSource(descriptor, 'gui', false);
+      return true;
     },
     connect({ inputId, restoring = false } = {}) {
       if (destroyed) return Promise.resolve(status);

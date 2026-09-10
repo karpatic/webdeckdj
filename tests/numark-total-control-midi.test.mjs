@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   TOTAL_CONTROL_APP_LED_NOTES,
   TOTAL_CONTROL_LED_NOTES,
+  TOTAL_CONTROL_PITCH_STEP_PULSE_MS,
   createTotalControlMidi,
   decodeTotalControl,
   getTotalControlLedState,
@@ -101,9 +102,9 @@ class MockAccess {
   }
 }
 
-function makeEnvironment(access) {
+function makeEnvironment(access, extras = {}) {
   const storage = new Map();
-  return {
+  return Object.assign({
     isSecureContext: true,
     localStorage: {
       getItem: key => storage.get(key) || null,
@@ -117,7 +118,45 @@ function makeEnvironment(access) {
       },
       permissions: { query: async () => ({ state: 'granted' }) }
     }
-  };
+  }, extras);
+}
+
+class FakeClock {
+  constructor() {
+    this.now = 0;
+    this.nextId = 1;
+    this.tasks = new Map();
+  }
+
+  setTimeout(callback, delay) {
+    const id = this.nextId;
+    this.nextId += 1;
+    this.tasks.set(id, { callback, at: this.now + delay });
+    return id;
+  }
+
+  clearTimeout(id) {
+    this.tasks.delete(id);
+  }
+
+  tick(milliseconds) {
+    const end = this.now + milliseconds;
+    while (true) {
+      let nextId = null;
+      let nextTask = null;
+      this.tasks.forEach((task, id) => {
+        if (task.at <= end && (!nextTask || task.at < nextTask.at)) {
+          nextId = id;
+          nextTask = task;
+        }
+      });
+      if (!nextTask) break;
+      this.now = nextTask.at;
+      this.tasks.delete(nextId);
+      nextTask.callback();
+    }
+    this.now = end;
+  }
 }
 
 function fullAppState() {
@@ -153,6 +192,117 @@ test('verified state projection keeps input notes distinct from LED output notes
   assert.equal(leds.get(80), true, 'left treble center indicator');
   assert.equal(leds.get(81), false, 'left mid is away from center');
   assert.equal(leds.get(86), true, 'directory-mode indicator');
+  assert.equal(leds.get(TOTAL_CONTROL_APP_LED_NOTES.left.pitchStep.decrease), false);
+  assert.equal(leds.get(TOTAL_CONTROL_APP_LED_NOTES.left.pitchStep.increase), false);
+  assert.equal(leds.get(TOTAL_CONTROL_APP_LED_NOTES.right.pitchStep.decrease), false);
+  assert.equal(leds.get(TOTAL_CONTROL_APP_LED_NOTES.right.pitchStep.increase), false);
+});
+
+test('physical pitch-step presses light the verified output notes until release without repeating actions', async () => {
+  const input = new MockPort({ id: 'input-1', type: 'input' });
+  const output = new MockPort({ id: 'output-1', type: 'output' });
+  const actions = [];
+  const feedback = [];
+  const midi = createTotalControlMidi({
+    onAction: action => actions.push(action),
+    onPitchStepFeedback: event => feedback.push(event)
+  }, makeEnvironment(new MockAccess([input], [output])));
+  await midi.connect();
+  await settle();
+  output.messages.length = 0;
+
+  const mappings = [
+    { input: 65, deck: 'left', delta: -0.1, direction: 'decrease', output: 56 },
+    { input: 66, deck: 'left', delta: 0.1, direction: 'increase', output: 57 },
+    { input: 69, deck: 'right', delta: -0.1, direction: 'decrease', output: 72 },
+    { input: 70, deck: 'right', delta: 0.1, direction: 'increase', output: 73 }
+  ];
+
+  mappings.forEach(mapping => {
+    const actionCount = actions.length;
+    const messageCount = output.messages.length;
+    input.emitMidi([0x90, mapping.input, 0x7f]);
+    assert.deepEqual(actions.at(-1), { type: 'pitchStep', deck: mapping.deck, delta: mapping.delta });
+    assert.equal(actions.length, actionCount + 1);
+    assert.deepEqual(feedback.at(-1), {
+      deck: mapping.deck, delta: mapping.delta, direction: mapping.direction, active: true
+    });
+    assert.deepEqual(output.messages.at(-1), [0x90, mapping.output, 0x7f]);
+
+    input.emitMidi([0x90, mapping.input, 0x7f]);
+    assert.equal(actions.length, actionCount + 1, 'held Note On stays suppressed');
+    assert.equal(output.messages.length, messageCount + 1, 'held Note On does not resend its LED');
+
+    input.emitMidi([0x90, mapping.input, 0x00]);
+    assert.deepEqual(feedback.at(-1), {
+      deck: mapping.deck, delta: mapping.delta, direction: mapping.direction, active: false
+    });
+    assert.deepEqual(output.messages.at(-1), [0x90, mapping.output, 0x00]);
+    assert.equal(output.messages.length, messageCount + 2);
+  });
+
+  midi.destroy();
+});
+
+test('GUI pitch-step feedback emits a bounded 180 ms pulse and clears on blur-style cancellation and disconnect', async () => {
+  const input = new MockPort({ id: 'input-1', type: 'input' });
+  const output = new MockPort({ id: 'output-1', type: 'output' });
+  const clock = new FakeClock();
+  const feedback = [];
+  const midi = createTotalControlMidi({ onPitchStepFeedback: event => feedback.push(event) }, makeEnvironment(
+    new MockAccess([input], [output]),
+    { setTimeout: clock.setTimeout.bind(clock), clearTimeout: clock.clearTimeout.bind(clock) }
+  ));
+  await midi.connect();
+  await settle();
+  output.messages.length = 0;
+
+  assert.equal(TOTAL_CONTROL_PITCH_STEP_PULSE_MS, 180);
+  assert.equal(midi.pulsePitchStep('left', -0.1), true);
+  assert.deepEqual(output.messages, [[0x90, 56, 0x7f]]);
+  assert.equal(feedback.at(-1).active, true);
+  clock.tick(179);
+  assert.deepEqual(output.messages, [[0x90, 56, 0x7f]], 'pulse remains lit before its exact deadline');
+  clock.tick(1);
+  assert.deepEqual(output.messages.at(-1), [0x90, 56, 0x00]);
+  assert.equal(feedback.at(-1).active, false);
+
+  output.messages.length = 0;
+  midi.pulsePitchStep('left', -0.1);
+  input.emitMidi([0x90, 65, 0x7f]);
+  assert.deepEqual(output.messages, [[0x90, 56, 0x7f]], 'overlapping GUI and physical sources deduplicate on');
+  clock.tick(180);
+  assert.deepEqual(output.messages, [[0x90, 56, 0x7f]], 'GUI pulse expiry cannot clear a held physical press');
+  input.emitMidi([0x90, 65, 0x00]);
+  assert.deepEqual(output.messages.at(-1), [0x90, 56, 0x00]);
+
+  midi.pulsePitchStep('right', 0.1);
+  assert.deepEqual(output.messages.at(-1), [0x90, 73, 0x7f]);
+  assert.equal(midi.clearPitchStep('right', 0.1), true);
+  assert.deepEqual(output.messages.at(-1), [0x90, 73, 0x00]);
+  clock.tick(180);
+  assert.deepEqual(output.messages.at(-1), [0x90, 73, 0x00], 'cancelled pulse cannot fire again');
+
+  midi.pulsePitchStep('left', 0.1);
+  midi.disconnect();
+  await settle();
+  assert.equal(feedback.at(-1).active, false);
+  assert.equal(clock.tasks.size, 0);
+  assert.deepEqual(output.messages.slice(-39), TOTAL_CONTROL_LED_NOTES.map(note => [0x90, note, 0x00]));
+
+  await midi.connect();
+  await settle();
+  output.messages.length = 0;
+  midi.pulsePitchStep('right', -0.1);
+  input.emitMidi([0x90, 66, 0x7f]);
+  assert.deepEqual(output.messages, [[0x90, 72, 0x7f], [0x90, 57, 0x7f]]);
+  midi.destroy();
+  await settle();
+  assert.equal(clock.tasks.size, 0, 'component-style teardown cancels GUI pulse timers');
+  assert.deepEqual(output.messages.slice(-39), TOTAL_CONTROL_LED_NOTES.map(note => [0x90, note, 0x00]));
+  const messageCount = output.messages.length;
+  clock.tick(180);
+  assert.equal(output.messages.length, messageCount, 'teardown leaves no late LED writes');
 });
 
 test('matching output receives exact channel-1 bytes, initial sync, GUI updates, and deduplication', async () => {

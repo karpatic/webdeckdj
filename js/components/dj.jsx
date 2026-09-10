@@ -27,6 +27,15 @@ const readSettings = () => {
   return settings;
 };
 
+const getMidiStatusMessage = (status) => {
+  if (!status) return '';
+  const messages = [];
+  if (status.message) messages.push(status.message);
+  const lightingMessage = status.lighting && status.lighting.message;
+  if (lightingMessage && lightingMessage !== status.message) messages.push(lightingMessage);
+  return messages.join(' · ');
+};
+
 const useSampleChannel = (samples) => {
   const [selectedId, select] = React.useState(null);
   const [playingId, setPlayingId] = React.useState(null);
@@ -170,9 +179,6 @@ const SharedHelp = ({ midiApi, midiStatus }) => {
         onMouseLeave={(event) => event.stopPropagation()}
         aria-label="MIDI controller" hidden={!midiOpen}>
         <strong>Numark Total Control</strong>
-        {midiStatus?.code !== 'idle' && <p className="mb-2">{midiStatus?.code === 'connected'
-          ? `Connected${midiStatus?.lighting?.code === 'connected' ? ' · lights connected' : midiStatus?.lighting?.message ? ` · ${midiStatus.lighting.message}` : ''}`
-          : midiStatus?.message}</p>}
         <div className="d-flex gap-2 mb-2">
           <button type="button" className="btn btn-sm btn-primary"
             disabled={!midiApi || ['requesting', 'connecting'].includes(midiStatus?.code)}
@@ -187,7 +193,7 @@ const SharedHelp = ({ midiApi, midiStatus }) => {
           {midiStatus.inputs.map(input => <button key={input.id} type="button" className="btn btn-sm btn-outline-info me-1 mb-1"
             onClick={() => midiApi && midiApi.connect({ inputId: input.id })}>{input.name}</button>)}
         </div>}
-        <p className="small mb-2">The guide shows the current input mapping: dual FX modes, independent Samples1/2, Gain-to-pitch, persistent pitch steps, playing/paused jog behavior, EQ push-kill, loops, transport, mixing, and crate navigation. Gray controls are not mapped. Browse press enters a folder; Load A/B never starts playback.</p>
+        <p className="small mb-2">The guide shows the current input mapping: dual FX modes, independent Samples1/2, Gain-to-pitch, lit pitch-step feedback, playing/paused jog behavior, EQ push-kill, loops, transport, mixing, and crate navigation. Gray controls are not mapped. Browse press enters a folder; Load A/B never starts playback.</p>
         <img className="midi-guide-image" src="./assets/midi/numark-total-control/numark-total-control-guide.svg?v=current-app-map-2" alt="Current WebDeckDJ MIDI mapping for the Numark Total Control; gray controls are unmapped" />
       </div>
       <div
@@ -253,6 +259,7 @@ const App = () => {
   const [fxSamples, setFxSamples] = React.useState([]);
   const samples1 = useSampleChannel(fxSamples);
   const samples2 = useSampleChannel(fxSamples);
+  const midiStatusMessage = getMidiStatusMessage(midiStatus);
   
   // Audio context for potential visualizers
   const [audioContext, setAudioContext] = React.useState(null);
@@ -340,6 +347,8 @@ const App = () => {
                onRegisterMidiActions={registerCrateMidiActions}
                onMidiDirectoryModeChange={setCrateDirectoryMode}
             />
+            {midiStatusMessage && <p className={`midi-status-footer${midiStatus?.lighting?.code === 'error' || midiStatus?.code === 'error' ? ' text-warning' : ''}`}
+              role="status" aria-live="polite">{midiStatusMessage}</p>}
           </div>
         </div>
         

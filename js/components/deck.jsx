@@ -15,8 +15,10 @@ const Deck = ({
   progress,
   pitch,
   rateRevision,
+  pitchStepActive,
   onPitchChange,
   onPitchAdjust,
+  onPitchStepCancel,
   volume,
   onVolumeChange,
   midiEQRef,
@@ -288,8 +290,10 @@ const Deck = ({
                 name={name}
                 audioRef={audioRef}
                 pitch={pitch}
+                pitchStepActive={pitchStepActive}
                 onPitchChange={onPitchChange}
                 onPitchAdjust={onPitchAdjust}
+                onPitchStepCancel={onPitchStepCancel}
                 volume={volume}
                 onVolumeChange={onVolumeChange}
                 midiEQRef={midiEQRef}

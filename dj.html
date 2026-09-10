@@ -6,7 +6,7 @@
   <title>DJ Mixer</title> 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="DJ Mixer with Visualizer">
-  <link rel="stylesheet" href="./dj-faders.css?v=mobile-crate-load-1">
+  <link rel="stylesheet" href="./dj-faders.css?v=midi-ui-followup-1">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"> 
   <!-- Butterchurn libraries -->
@@ -40,16 +40,16 @@
     review remains outstanding; see ./vendor/essentia-0.1.3/SOURCES.md.
   -->
   <script src="./js/beat/analysis-client.js?degara=0.1.3"></script>
-  <script src="./js/beat/sync.js?degara=0.1.3&bridge=auto-loop-1"></script>
+  <script src="./js/beat/sync.js?degara=0.1.3&bridge=midi-ui-followup-1"></script>
   <script>
     // Native module loading stays outside the JSX compiler.
-    window.webDeckMidiReady = import('./js/midi/numark-total-control.mjs?v=midi-lights-1');
+    window.webDeckMidiReady = import('./js/midi/numark-total-control.mjs?v=midi-ui-followup-1');
     window.webDeckMidiReady.catch(() => {});
     window.webDeckFxReady = import('./js/audio/fx-rack.mjs');
     window.webDeckFxReady.catch(() => {});
   </script>
   <!-- bundless -->
-  <script src="./js/components/dj.jsx?e=midi-lights-1" type="text/jsx"></script>
+  <script src="./js/components/dj.jsx?e=midi-ui-followup-1" type="text/jsx"></script>
 
   <script src="./js/bundless.acorn.min.js?t=31" cache="false" type="module"></script>  
  

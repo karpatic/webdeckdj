@@ -7,7 +7,7 @@ const formatSignedValue = (value, suffix) => {
   return `${value > 0 ? "+" : ""}${displayValue}${suffix}`;
 };
 
-const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, onPitchAdjust, volume, onVolumeChange, timeline, scrollPreview, midiEQRef, midiFxRef, onMidiEqStateChange, onMidiFxStateChange, sampleControl, fxRack, beatAvailable }) => {
+const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, pitchStepActive, onPitchChange, onPitchAdjust, onPitchStepCancel, volume, onVolumeChange, timeline, scrollPreview, midiEQRef, midiFxRef, onMidiEqStateChange, onMidiFxStateChange, sampleControl, fxRack, beatAvailable }) => {
   const [eq, setEq] = React.useState({ bass: 0, mid: 0, treble: 0 });
   const [killed, setKilled] = React.useState({ bass: false, mid: false, treble: false });
 
@@ -82,8 +82,14 @@ const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, 
             formatValue={(value) => formatSignedValue(value, '%')}
           />
           <div className="pitch-step-buttons" aria-label={`Deck ${name} pitch fine adjustment`}>
-            <button type="button" className="btn btn-sm btn-outline-light" aria-label={`Decrease Deck ${name} pitch by 0.1 percentage points`} onClick={() => onPitchAdjust(-0.1)}>−</button>
-            <button type="button" className="btn btn-sm btn-outline-light" aria-label={`Increase Deck ${name} pitch by 0.1 percentage points`} onClick={() => onPitchAdjust(0.1)}>+</button>
+            <button type="button" className={`btn btn-sm btn-outline-light${pitchStepActive?.decrease ? ' is-active' : ''}`}
+              aria-label={`Decrease Deck ${name} pitch by 0.1 percentage points`}
+              onBlur={() => onPitchStepCancel(-0.1)} onPointerCancel={() => onPitchStepCancel(-0.1)}
+              onClick={() => onPitchAdjust(-0.1)}>−</button>
+            <button type="button" className={`btn btn-sm btn-outline-light${pitchStepActive?.increase ? ' is-active' : ''}`}
+              aria-label={`Increase Deck ${name} pitch by 0.1 percentage points`}
+              onBlur={() => onPitchStepCancel(0.1)} onPointerCancel={() => onPitchStepCancel(0.1)}
+              onClick={() => onPitchAdjust(0.1)}>+</button>
           </div>
         </div>
         <div className="deck-bpm-control">{bpmControl}</div>
