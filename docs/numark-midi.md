@@ -1,8 +1,8 @@
-# Numark Total Control — input-only integration
+# Numark Total Control — input and LED integration
 
 ## Delivery boundary
 
-`js/midi/numark-total-control.mjs` is executable native JavaScript with no dependencies, MIDI output, SysEx, storage, DOM mutation, or audio calls. It is wired through the native `window.webDeckMidiReady` bridge in `dj.html` to Mixer semantic actions. Importing/constructing the adapter does not request permission or acquire a port.
+`js/midi/numark-total-control.mjs` is executable native JavaScript with no dependencies, SysEx, DOM mutation, or audio calls. It is wired through the native `window.webDeckMidiReady` bridge in `dj.html` to Mixer semantic actions and state-derived LED output. Importing/constructing the adapter does not request permission or acquire a port. MIDI output is optional: input remains usable when no safe matching output can be selected or an LED send fails.
 
 ## Mapping provenance
 
@@ -16,6 +16,31 @@ Historical source paths below are relative to the local GitHub workspace root.
 - Physical FX labels and placements were verified against [Numark's official Total Control MIDI Map](https://www.numark.com/images/product_downloads/totalcontrol_midimap.pdf), linked by the manufacturer's product page. Fetched PDF SHA-256: `8c10fd1a4fc10d3a22ef88e93c3d530316aef1d1f39734bd43d7e8c3b95db468`. Its input diagram identifies the knob CCs and the notes physically beneath them; the compatible Mixxx `controls/control` rows independently contain the same message numbers. No output/LED row was used.
 - The same official diagram places CC 3 / Note 58 on the left Fine Pitch/Tap control and CC 7 / Note 62 on the right. Mixxx's input-only `controls/control` rows independently name those inputs `finePitch` and `tap`. Its accompanying script confirms Fine Pitch is two's-complement relative (`1…63` positive, `64…127` negative, `0` stationary). Note 62 (`0x3e`) also appears in a separate LED/output table in that script; the Samples2 trigger is based on the input row and manufacturer diagram, not that output assignment.
 - The manufacturer diagram places the Deck A/left jog at CC 25 (`0x19`) and Deck B/right jog at CC 24 (`0x18`). Mixxx's input-only XML binds those exact CCs with status `0xb0` to `NumarkTotalControl.jogWheel` for Channel1/Channel2. [Mixxx's accompanying script](https://raw.githubusercontent.com/mixxxdj/mixxx/main/res/controllers/Numark-Total-Control-scripts.js) documents the device values as counter-clockwise fast/slow `64/127`, clockwise slow/fast `1/63`, and decodes values greater than 63 by subtracting 128. Thus jog decoding is independently sourced and is not inferred from WebDeckDJ's captured FX encoder bytes. The hardware sends channel-one CC status `0xB0`; the adapter retains its pre-existing channel-family policy and accepts `0xB0…0xBF`.
+
+## Verified LED output map and current semantics
+
+[Mixxx's `Numark Total Control Midi Codes` wiki page](https://github.com/mixxxdj/mixxx/wiki/Numark-Total-Control-Midi-Codes) separately documents the physical-coordinate input and LED-output tables. The wiki repository file `Numark Total Control Midi Codes.md` was fetched at wiki HEAD `b0d9de1e2b3ffd205baacedcae614d88d97c38ea`; SHA-256 `ae3ed94ebd83e4df4e792376383f94194328e2b48bdc99402cea6dbf183f2190`. Its LED tables enumerate every output note from decimal 48 through 86 exactly once. They say a `0x90` Note On with nonzero velocity lights the addressed LED and either Note Off or zero-velocity Note On clears it. WebDeckDJ uses the deterministic channel-one forms `90 NOTE 7F` for on and `90 NOTE 00` for off. It sends no SysEx.
+
+The table below joins physical coordinates—not equal note numbers—to the existing WebDeckDJ assignments. “Input” is what the hardware button sends; “LED output” is what the host sends back.
+
+| Current physical/app control | Input | LED output | State represented by the LED |
+| --- | --- | --- | --- |
+| A / B Play | Note 67 / 76 | Note 62 (`0x3e`) / 78 (`0x4e`) | Deck is playing |
+| A / B Cue | Note 51 / 60 | Note 60 (`0x3c`) / 76 (`0x4c`) | Loaded deck is paused at its cue point |
+| A / B Set Cue | Note 59 / 68 | Note 61 (`0x3d`) / 77 (`0x4d`) | Cue was explicitly set for the current track |
+| A / B Load | Note 75 / 52 | Note 63 (`0x3f`) / 79 (`0x4f`) | A track is loaded on that deck |
+| A / B Loop In | Note 73 / 77 | Note 58 (`0x3a`) / 74 (`0x4a`) | Current track has a saved loop-in point |
+| A / B Loop Out | Note 74 / 78 | Note 59 (`0x3b`) / 75 (`0x4b`) | Loop is active; GUI Auto Loop updates the same indicator |
+| A / B Tap, repurposed as Samples1 / Samples2 trigger | Note 58 / 62 | Note 48 (`0x30`) / 71 (`0x47`) | That sample channel is actually playing |
+| A FX1 / FX2 mode | Note 49 / 50 | Note 51 (`0x33`) / 49 (`0x31`) | Corresponding FX knob is in Strength mode |
+| B FX1 / FX2 mode | Note 53 / 54 | Note 68 (`0x44`) / 69 (`0x45`) | Corresponding FX knob is in Strength mode |
+| A Treble / Mid / Bass knobs | CC 16 / 18 / 20; push Notes 80 / 85 / 83 | Note 80 / 81 / 82 (`0x50/51/52`) | Source-defined knob center indicator: retained EQ value is 0 dB, not kill state |
+| B Treble / Mid / Bass knobs | CC 17 / 19 / 21; push Notes 82 / 81 / 84 | Note 83 / 84 / 85 (`0x53/54/55`) | Source-defined knob center indicator: retained EQ value is 0 dB, not kill state |
+| Directory | Note 72 | Note 86 (`0x56`) | Crate is showing the directory list |
+
+The documented LEDs for the pitch-bend −/+ buttons (56/57 and 72/73) remain off because those app actions are momentary adjustments with no persistent on/off state. The physical pitch-slider center LEDs (52/67) also remain off because the pitch sliders are intentionally unmapped; the app's pitch state is controlled by the repurposed Gain knobs, so lighting the sliders would fabricate an association. Unassigned surface controls remain off. The mapped FX knobs, Fine Pitch/sample selectors, Gain/pitch knobs, jog wheels, volume faders, crossfader, Browse encoder, and Browse press have no separate LED in the wiki table; none is invented.
+
+Initial connection and every output reconnect send one full 48–86 state snapshot. Later React or MIDI state changes send only changed notes. Disconnect and component teardown best-effort send `90 NOTE 00` for all 48–86 notes before closing the selected output. These are state messages only; the app never emits a diagnostic chase or broadcasts to non-Total-Control ports.
 
 | Physical mapping label | Message number (decimal) | Semantic action |
 | --- | --- | --- |
@@ -88,19 +113,26 @@ boundary; WebDeckDJ had no separate tap-tempo owner to retain. Par On/Off is not
 Samples. The two channels share one imported sample array/storage path but have separate
 selection state, audio elements, object URLs, restart tokens, errors, and cleanup lifecycles.
 
-The shared Help/MIDI corner owns only presentation; Mixer owns the single inert adapter.
-Disconnect stays available with an adapter, including pending permission, pending open,
-no-controller and unplugged states. It invalidates late continuations and removes the
+The shared Help/MIDI corner owns only presentation; Mixer owns the single adapter.
+Disconnect stays available with an adapter, including pending permission, pending input/output
+opens, no-controller and unplugged states. It invalidates late continuations and removes the
 hotplug subscription. Only a fresh user Connect action may acquire access again.
 
-Current local closeout evidence lives in `/tmp/dj-audit-implementation-result.md`.
-The historical verification below describes its original task, not current device state.
+### Lifecycle usage
 
 ```js
 import { createTotalControlMidi } from './js/midi/numark-total-control.mjs';
 const midi = createTotalControlMidi({
   onAction(action) { /* call the CURRENT owning UI action */ },
   onStatus(status) { /* render status.message with role=status */ }
+});
+// React owners supply a full semantic snapshot. Calling again with the same state sends nothing.
+midi.setLedState({
+  directoryMode: false,
+  decks: {
+    left: { loaded: false, playing: false, cueAt: false, cueSet: false, loopInSet: false, loopActive: false, samplePlaying: false, fxStrengthMode: [false, false], eqCentered: { treble: true, mid: true, bass: true } },
+    right: { loaded: false, playing: false, cueAt: false, cueSet: false, loopInSet: false, loopActive: false, samplePlaying: false, fxStrengthMode: [false, false], eqCentered: { treble: true, mid: true, bass: true } }
+  }
 });
 // Directly from a user click, not a mount effect or after awaited module loading:
 button.onclick = () => midi.connect();
@@ -114,9 +146,9 @@ midi.disconnect();
 midi.destroy();
 ```
 
-`connect()` resolves after permission and selection have been processed; **use `onStatus` to observe the asynchronous input open**, rather than interpreting the returned Promise as proof of a usable device. Status has `{ code, message, input, inputs }`. Codes: `idle`, `requesting`, `connecting`, `connected`, `no-controller`, `choose-controller`, `insecure`, `unsupported`, `gesture-required`, `denied`, `error`, `action-error`, `destroyed`. There is no raw-message diagnostics UI.
+`connect()` resolves after permission and selection have been processed; **use `onStatus` to observe the asynchronous port opens**, rather than interpreting the returned Promise as proof of a usable device. Status has `{ code, message, input, inputs, output, lighting }`; `lighting` has its own `idle`, `connecting`, `connected`, `unavailable`, `ambiguous`, `error`, or `destroyed` code so an output issue never changes a usable input's `connected` code. Main input codes remain `idle`, `requesting`, `connecting`, `connected`, `no-controller`, `choose-controller`, `insecure`, `unsupported`, `gesture-required`, `denied`, `error`, `action-error`, and `destroyed`. There is no raw-message diagnostics UI.
 
-Only a matching **input** is opened; MIDI outputs are never even enumerated. A single match is selected automatically after consent. Multiple matches fail closed until `connect({inputId})` selects one. The chosen ID is retained while unplugged, so another controller cannot silently take over. If a browser assigns a new ID after replugging, Disconnect then Connect selects afresh. No-controller status keeps the access-level hotplug listener alive until disconnect/destroy. Repeated Connect calls cannot stack listeners. Open/close operations are serialized per port; teardown invalidates permission completion, suppresses pending input-open callbacks, removes our listeners, and closes only our selected input. Use one adapter instance per mounted mixer; do not intentionally share this input with a second adapter in the same page.
+Only matching Total Control ports are opened. A single matching input is selected automatically after consent; multiple inputs fail closed until `connect({inputId})` selects one. Lighting uses the sole matching output, or a unique output whose normalized manufacturer/name exactly matches the selected input. Multiple indistinguishable outputs fail closed for lighting while input continues. The chosen input ID is retained while unplugged, so another controller cannot silently take over. If a browser assigns a new input ID after replugging, Disconnect then Connect selects afresh. No-controller status keeps the access-level hotplug listener alive until disconnect/destroy. Repeated Connect calls cannot stack listeners. Open/close operations are serialized per port; teardown invalidates permission completion, suppresses pending opens, removes the input listener, clears reachable controller LEDs, and closes only selected matching ports. Use one adapter instance per mounted mixer.
 
 Web MIDI API reference checked: <https://www.w3.org/TR/webmidi/>. It defines `requestMIDIAccess`, `sysex`, secure-context exposure, input open/close, and statechange events. The request is exactly `{ sysex: false }`. Browser denial and restrictive Permissions Policy are surfaced, not bypassed. The adapter checks `navigator.userActivation.isActive` where available; callers must still use an actual gesture on browsers without that field.
 
@@ -231,8 +263,8 @@ No soft takeover/pickup is implemented. The first changed mapped CC takes effect
 
 ## Verification and remaining hardware acceptance
 
-- Direct Node execution uses **explicitly synthetic** message bytes and mock MIDI ports, not attached hardware. No project suite, linter, dependency install, or browser session was run.
-- Read-only `lsusb`, `aconnect -l`, and `/proc/asound/cards` did **not** show Numark/Total Control. ALSA listed System, Midi Through, and PipeWire clients; the only sound card was `sof-hda-dsp`. No MIDI connection/subscription was created.
-- The new module is served at `http://127.0.0.1:8876/music/js/midi/numark-total-control.mjs`; compare served bytes against the source after any edit.
-- Hardware acceptance remains: connect USB, wire this handoff after main-writer completion, let Carlos click Connect and grant browser MIDI permission, then check the supported controls against loaded decks and visible state. Confirm unplug/replug status and selected-device behavior. Mapping source is not proof that this unit emits those messages.
-- The active DJ and BeatLab playback pages were not navigated, refreshed, instrumented, or granted permissions. No deployment, main-file modification, crate/database access, Git action, SFTP action, MIDI output, SysEx, or hardware-setting change occurred in this task.
+- `node --test tests/numark-total-control-midi.test.mjs` uses explicitly synthetic messages and injected mock Web MIDI ports. It checks all intended state-to-note mappings, exact `0x90` bytes, input/output note separation, deduplication, safe output selection, missing/failed output isolation, reconnect sync, explicit disconnect, and teardown while output open is pending.
+- The complete authored DJ graph bundles with the installed esbuild. Every changed JSX component also parses after the exact shipped Bundless transform, including explicit checks for its known grouping/computed-key emitter hazards. The prior mobile music-versus-FX crate interaction regression still passes.
+- Read-only `lsusb`, `aconnect -l`, and `/proc/asound/cards` did **not** show Numark/Total Control on 2026-09-09. ALSA listed System, Midi Through, and PipeWire clients; the only sound card was `sof-hda-dsp`. No MIDI connection/subscription or hardware light sequence was created.
+- Hardware acceptance remains: connect the controller, let Carlos click Connect and grant browser MIDI permission, then verify the state indicators against the physical surface, including unplug/replug. Source tables and synthetic output capture are not proof that physical LEDs illuminated.
+- No headed browser was opened, no active playback tab was touched, and this local MIDI change was not committed, pushed, released, or deployed.

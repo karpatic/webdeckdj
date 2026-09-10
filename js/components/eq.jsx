@@ -7,7 +7,7 @@ const formatSignedValue = (value, suffix) => {
   return `${value > 0 ? "+" : ""}${displayValue}${suffix}`;
 };
 
-const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, onPitchAdjust, volume, onVolumeChange, timeline, scrollPreview, midiEQRef, midiFxRef, sampleControl, fxRack, beatAvailable }) => {
+const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, onPitchChange, onPitchAdjust, volume, onVolumeChange, timeline, scrollPreview, midiEQRef, midiFxRef, onMidiEqStateChange, onMidiFxStateChange, sampleControl, fxRack, beatAvailable }) => {
   const [eq, setEq] = React.useState({ bass: 0, mid: 0, treble: 0 });
   const [killed, setKilled] = React.useState({ bass: false, mid: false, treble: false });
 
@@ -61,6 +61,15 @@ const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, 
     };
   });
 
+  React.useEffect(() => {
+    if (!onMidiEqStateChange) return;
+    onMidiEqStateChange(name === 'A' ? 'left' : 'right', {
+      treble: eq.treble === 0,
+      mid: eq.mid === 0,
+      bass: eq.bass === 0
+    });
+  }, [name, eq, onMidiEqStateChange]);
+
   return (
     <div className={`eq-controls eq-controls-${name}`}>
       <div className="deck-control-strip">
@@ -82,8 +91,8 @@ const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, 
       {timeline}
       <div className="deck-fx-section">
         <div className="deck-fx-knobs">
-          <FxKnob deck={name} slot={0} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} />
-          <FxKnob deck={name} slot={1} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} />
+          <FxKnob deck={name} slot={0} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} onMidiFxStateChange={onMidiFxStateChange} />
+          <FxKnob deck={name} slot={1} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} onMidiFxStateChange={onMidiFxStateChange} />
         </div>
         <div className="deck-sample-knob">{sampleControl}</div>
       </div>

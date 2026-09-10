@@ -1,7 +1,8 @@
 // Input assignments: pages/webmidi/controllers/numark-total-control.js:25-42.
-// Status/channel decoding: pages/webmidi/ui.js:51-60. No MIDI output or SysEx.
+// Status/channel decoding: pages/webmidi/ui.js:51-60. No SysEx.
 // EQ/loop/pitch-step/FX/Fine Pitch/Tap/jog INPUT assignments verified against Mixxx and Numark sources;
-// see docs/numark-midi.md for URL/hash. Output/LED assignments are not inputs.
+// see docs/numark-midi.md for URL/hash. LED OUTPUT assignments are a separate table and are never
+// substituted for the input notes below.
 const notes = new Map([
   [67, { type: 'play', deck: 'left' }],
   [51, { type: 'cue', deck: 'left' }],
@@ -63,9 +64,73 @@ const browseNotes = new Map([
   [0x34, { type: 'load-track', deck: 'right' }]
 ]);
 
+// Mixxx wiki "Numark Total Control Midi Codes", LED table. The table enumerates every
+// output note from 48 through 86 exactly once. WebDeckDJ deliberately sends on channel 1.
+export const TOTAL_CONTROL_LED_NOTES = Object.freeze(
+  Array.from({ length: 0x56 - 0x30 + 1 }, (_, index) => 0x30 + index)
+);
+
+export const TOTAL_CONTROL_APP_LED_NOTES = Object.freeze({
+  left: Object.freeze({
+    samplePlaying: 0x30,
+    fxStrengthMode: Object.freeze([0x33, 0x31]),
+    loopInSet: 0x3a,
+    loopActive: 0x3b,
+    cueAt: 0x3c,
+    cueSet: 0x3d,
+    playing: 0x3e,
+    loaded: 0x3f,
+    eqCentered: Object.freeze({ treble: 0x50, mid: 0x51, bass: 0x52 })
+  }),
+  right: Object.freeze({
+    fxStrengthMode: Object.freeze([0x44, 0x45]),
+    samplePlaying: 0x47,
+    loopInSet: 0x4a,
+    loopActive: 0x4b,
+    cueAt: 0x4c,
+    cueSet: 0x4d,
+    playing: 0x4e,
+    loaded: 0x4f,
+    eqCentered: Object.freeze({ treble: 0x53, mid: 0x54, bass: 0x55 })
+  }),
+  directoryMode: 0x56
+});
+
+// Pure app-state projection used by the adapter and direct tests. Unmapped controls and
+// momentary actions have no persistent app state, so their verified LEDs remain off.
+export function getTotalControlLedState(appState = {}) {
+  const state = new Map(TOTAL_CONTROL_LED_NOTES.map(note => [note, false]));
+  const decks = appState.decks || {};
+  ['left', 'right'].forEach(deck => {
+    const deckState = decks[deck] || {};
+    const output = TOTAL_CONTROL_APP_LED_NOTES[deck];
+    state.set(output.playing, deckState.playing === true);
+    state.set(output.loaded, deckState.loaded === true);
+    state.set(output.cueAt, deckState.cueAt === true);
+    state.set(output.cueSet, deckState.cueSet === true);
+    state.set(output.loopInSet, deckState.loopInSet === true);
+    state.set(output.loopActive, deckState.loopActive === true);
+    state.set(output.samplePlaying, deckState.samplePlaying === true);
+    const fxModes = Array.isArray(deckState.fxStrengthMode) ? deckState.fxStrengthMode : [];
+    output.fxStrengthMode.forEach((note, slot) => state.set(note, fxModes[slot] === true));
+    const eqCentered = deckState.eqCentered || {};
+    Object.entries(output.eqCentered).forEach(([band, note]) => {
+      state.set(note, eqCentered[band] === true);
+    });
+  });
+  state.set(TOTAL_CONTROL_APP_LED_NOTES.directoryMode, appState.directoryMode === true);
+  return state;
+}
+
 export function isTotalControlInput(input) {
   return input?.type === 'input' && /total(?:\s*track)?\s*control/i.test(
     `${input.manufacturer || ''} ${input.name || ''}`
+  );
+}
+
+export function isTotalControlOutput(output) {
+  return output?.type === 'output' && /total(?:\s*track)?\s*control/i.test(
+    `${output.manufacturer || ''} ${output.name || ''}`
   );
 }
 
@@ -158,23 +223,32 @@ export function createTotalControlDispatcher(onAction) {
 // The second argument is only an environment seam for synthetic direct checks.
 export function createTotalControlMidi(callbacks = {}, environment = globalThis) {
   let handlers = callbacks;
-  let status = { code: 'idle', message: '', input: null, inputs: [] };
+  let lighting = { code: 'idle', message: '', output: null };
+  let status = { code: 'idle', message: '', input: null, inputs: [], output: null, lighting };
   let access = null;
   let pending = null;
   let selectedId = null;
-  let binding = null;
+  let inputBinding = null;
+  let outputBinding = null;
+  let desiredLedState = getTotalControlLedState();
   let generation = 0;
   let destroyed = false;
   const portOperations = new WeakMap();
   const dispatcher = createTotalControlDispatcher(action => handlers.onAction?.(action));
 
   function publish(code, message, input = null, inputs = []) {
-    status = { code, message, input, inputs };
+    status = { code, message, input, inputs, output: lighting.output, lighting };
     if (!destroyed) handlers.onStatus?.(status);
     return status;
   }
-  function describe(input) {
-    return { id: input.id, name: input.name || 'Numark Total Control', manufacturer: input.manufacturer || '' };
+  function publishLighting(code, message, output = null, notify = true) {
+    lighting = { code, message, output: output ? describe(output) : null };
+    status = { ...status, output: lighting.output, lighting };
+    if (notify && !destroyed) handlers.onStatus?.(status);
+    return lighting;
+  }
+  function describe(port) {
+    return { id: port.id, name: port.name || 'Numark Total Control', manufacturer: port.manufacturer || '' };
   }
   function sequence(port, operation) {
     const previous = portOperations.get(port) || Promise.resolve();
@@ -182,15 +256,96 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
     portOperations.set(port, next);
     return next;
   }
-  function detach() {
-    const old = binding;
-    binding = null;
+  function sendAllLightsOff(port) {
+    let succeeded = true;
+    TOTAL_CONTROL_LED_NOTES.forEach(note => {
+      try { port.send([0x90, note, 0x00]); }
+      catch (_) { succeeded = false; }
+    });
+    return succeeded;
+  }
+  function syncLights(current) {
+    if (!current?.ready || outputBinding !== current || current.port.state !== 'connected') return false;
+    let succeeded = true;
+    desiredLedState.forEach((enabled, note) => {
+      if (current.sent.get(note) === enabled) return;
+      try {
+        current.port.send([0x90, note, enabled ? 0x7f : 0x00]);
+        current.sent.set(note, enabled);
+      } catch (_) {
+        succeeded = false;
+      }
+    });
+    if (!succeeded) {
+      publishLighting('error', 'Controller input works, but an LED command failed', current.port);
+    } else if (lighting.code !== 'connected' || lighting.output?.id !== current.port.id) {
+      publishLighting('connected', `Lights: ${current.port.name || 'Total Control'}`, current.port);
+    }
+    return succeeded;
+  }
+  function detachOutput(clear = true) {
+    const old = outputBinding;
+    outputBinding = null;
+    if (!old) return;
+    // Queue clearing after any pending open. Sending is best-effort and never rejects input/audio work.
+    sequence(old.port, async () => {
+      if (clear && old.port.state === 'connected') sendAllLightsOff(old.port);
+      try { await old.port.close(); } catch (_) { /* The input lifecycle remains independent. */ }
+    }).catch(() => {});
+  }
+  function detachInput() {
+    const old = inputBinding;
+    inputBinding = null;
     dispatcher.reset();
     if (old) {
       if (old.ready) old.port.removeEventListener('midimessage', old.listener);
       // Serialize close after our pending open, and before any subsequent open.
       sequence(old.port, () => old.port.close()).catch(() => {});
     }
+  }
+  function normalizedIdentity(port) {
+    return `${port.manufacturer || ''}|${port.name || ''}`.trim().replace(/\s+/g, ' ').toLowerCase();
+  }
+  function chooseOutput(input, candidates) {
+    if (candidates.length === 1) return candidates[0];
+    const identity = normalizedIdentity(input);
+    const matchingIdentity = candidates.filter(port => normalizedIdentity(port) === identity);
+    return matchingIdentity.length === 1 ? matchingIdentity[0] : null;
+  }
+  function reconcileOutput(input) {
+    if (!access || destroyed || !input) return;
+    const candidates = Array.from(access.outputs.values()).filter(
+      port => isTotalControlOutput(port) && port.state === 'connected'
+    );
+    const port = chooseOutput(input, candidates);
+    if (!port) {
+      detachOutput();
+      publishLighting(candidates.length > 1 ? 'ambiguous' : 'unavailable', candidates.length > 1
+        ? 'Controller input works; multiple matching lighting outputs were found'
+        : 'Controller input works; no matching lighting output was found');
+      return;
+    }
+    if (outputBinding?.port === port) {
+      if (!(outputBinding.ready && port.connection === 'closed')) return;
+      detachOutput();
+    } else {
+      detachOutput();
+    }
+    const current = { port, ready: false, sent: new Map() };
+    outputBinding = current;
+    publishLighting('connecting', 'Connecting Total Control lights…', port);
+    sequence(port, async () => {
+      if (destroyed || outputBinding !== current) return;
+      await port.open();
+      if (destroyed || outputBinding !== current || port.state !== 'connected') return;
+      current.ready = true;
+      syncLights(current);
+    }).catch(() => {
+      if (outputBinding !== current || destroyed) return;
+      outputBinding = null;
+      publishLighting('error', 'Controller input works, but its lighting output could not open', port);
+      sequence(port, () => port.close()).catch(() => {});
+    });
   }
   function reconcile() {
     if (!access || destroyed) return;
@@ -203,7 +358,9 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
       selectedId = port.id;
     }
     if (!port) {
-      detach();
+      detachOutput();
+      detachInput();
+      publishLighting('unavailable', 'Lights unavailable without a selected Total Control', null, false);
       if (selectedId === null && candidates.length > 1) {
         publish('choose-controller', 'Choose a Total Control input', null, candidates.map(describe));
       } else {
@@ -213,32 +370,35 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
       }
       return;
     }
-    if (binding?.port === port) {
-      if (binding.ready && port.connection === 'closed') {
-        detach();
+    reconcileOutput(port);
+    if (inputBinding?.port === port) {
+      if (inputBinding.ready && port.connection === 'closed') {
+        detachOutput();
+        detachInput();
         publish('error', 'MIDI input closed — click Connect MIDI to retry');
       }
       return;
     }
-    detach();
+    detachInput();
     const current = { port, ready: false, listener: null };
     current.listener = event => {
-      if (destroyed || binding !== current || !current.ready || port.state !== 'connected') return;
+      if (destroyed || inputBinding !== current || !current.ready || port.state !== 'connected') return;
       try { dispatcher.handle(event.data); }
       catch (error) { publish('action-error', 'MIDI action failed — check the deck', describe(port)); }
     };
-    binding = current;
+    inputBinding = current;
     publish('connecting', 'Connecting Total Control…', describe(port));
     sequence(port, async () => {
-      if (destroyed || binding !== current) return;
+      if (destroyed || inputBinding !== current) return;
       await port.open();
-      if (destroyed || binding !== current || port.state !== 'connected') return;
+      if (destroyed || inputBinding !== current || port.state !== 'connected') return;
       port.addEventListener('midimessage', current.listener);
       current.ready = true;
       publish('connected', `MIDI: ${port.name || 'Total Control'}`, describe(port));
     }).catch(() => {
-      if (binding !== current || destroyed) return;
-      detach();
+      if (inputBinding !== current || destroyed) return;
+      detachOutput();
+      detachInput();
       publish('error', 'Cannot open Total Control — close conflicting MIDI apps and retry');
     });
   }
@@ -247,7 +407,8 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
     pending = null;
     if (access) access.removeEventListener('statechange', reconcile);
     access = null;
-    detach();
+    detachOutput();
+    detachInput();
     selectedId = null;
   }
 
@@ -269,6 +430,11 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
     },
     getStatus() { return status; },
     setCallbacks(next = {}) { if (!destroyed) handlers = next; },
+    setLedState(next = {}) {
+      if (destroyed) return;
+      desiredLedState = getTotalControlLedState(next);
+      if (outputBinding?.ready) syncLights(outputBinding);
+    },
     connect({ inputId, restoring = false } = {}) {
       if (destroyed) return Promise.resolve(status);
       if (!environment.isSecureContext) {
@@ -316,6 +482,7 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
       if (destroyed) return;
       remember(false);
       stop();
+      publishLighting('idle', '', null, false);
       publish('idle', 'MIDI disconnected');
     },
     destroy() {
@@ -323,7 +490,8 @@ export function createTotalControlMidi(callbacks = {}, environment = globalThis)
       destroyed = true;
       stop();
       handlers = {};
-      status = { code: 'destroyed', message: 'MIDI adapter disposed', input: null, inputs: [] };
+      lighting = { code: 'destroyed', message: '', output: null };
+      status = { code: 'destroyed', message: 'MIDI adapter disposed', input: null, inputs: [], output: null, lighting };
     }
   };
   return api;

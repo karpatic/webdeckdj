@@ -2,7 +2,7 @@ import React from "react";
 import Deck from "./deck.jsx";
 import RotaryControl from "./rotary.jsx";
 
-const emptyMarkers = (trackUrl) => ({ trackUrl, cue: 0, in: null, out: null, active: false, kind: null, autoStartIndex: null, message: "" });
+const emptyMarkers = (trackUrl) => ({ trackUrl, cue: 0, cueSet: false, in: null, out: null, active: false, kind: null, autoStartIndex: null, message: "" });
 const jogIdleMilliseconds = 150;
 const jogRatePerStep = 0.0015;
 const jogRateLimit = 0.04;
@@ -36,6 +36,7 @@ const Mixer = ({
   getLeftAnalyzer,
   getRightAnalyzer,
   crateMidiRef,
+  crateDirectoryMode,
   onMidiApiChange,
   onMidiStatusChange
 }) => {
@@ -263,7 +264,7 @@ const Mixer = ({
     if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
     const position = Math.min(audio.duration, Math.max(0, audio.currentTime));
     if (action === 'setcue') {
-      setMarkers(current => ({ ...current, cue: position, message: '' }));
+      setMarkers(current => ({ ...current, cue: position, cueSet: true, message: '' }));
     } else if (action === 'cue') {
       audio.pause();
       audio.currentTime = Math.min(audio.duration, Math.max(0, markers.cue));
@@ -933,8 +934,74 @@ const Mixer = ({
   const midiEQRef = React.useRef({ left: null, right: null });
   const midiFxRef = React.useRef({ left: [null, null], right: [null, null] });
   const midiJogCleanupRef = React.useRef(null);
+  const [midiEqCentered, setMidiEqCentered] = React.useState({
+    left: { treble: true, mid: true, bass: true },
+    right: { treble: true, mid: true, bass: true }
+  });
+  const [midiFxStrengthMode, setMidiFxStrengthMode] = React.useState({
+    left: [false, false], right: [false, false]
+  });
   const [midiStatus, setMidiStatus] = React.useState({ code: 'loading', message: 'Loading MIDI…' });
   midiJogCleanupRef.current = clearAllJogNudges;
+  const updateMidiEqCentered = React.useCallback((deck, nextValues) => {
+    if (deck !== 'left' && deck !== 'right') return;
+    setMidiEqCentered(current => {
+      const previous = current[deck];
+      if (previous.treble === nextValues.treble && previous.mid === nextValues.mid && previous.bass === nextValues.bass) return current;
+      const next = { ...current };
+      next[deck] = { ...nextValues };
+      return next;
+    });
+  }, []);
+  const updateMidiFxStrengthMode = React.useCallback((deck, slot, enabled) => {
+    if ((deck !== 'left' && deck !== 'right') || (slot !== 0 && slot !== 1)) return;
+    setMidiFxStrengthMode(current => {
+      if (current[deck][slot] === enabled) return current;
+      const modes = [...current[deck]];
+      modes[slot] = enabled;
+      const next = { ...current };
+      next[deck] = modes;
+      return next;
+    });
+  }, []);
+
+  // Stage the fallback because the shipped JSX emitter drops grouping parentheses here.
+  const leftTrackKey = leftTrack?.url || null;
+  const rightTrackKey = rightTrack?.url || null;
+  const leftMarkersCurrent = leftMarkers.trackUrl === leftTrackKey;
+  const rightMarkersCurrent = rightMarkers.trackUrl === rightTrackKey;
+  const leftCueAt = leftReady && leftMarkersCurrent && !leftIsPlaying &&
+    Math.abs(leftProgress.currentTime - leftMarkers.cue) < 0.05;
+  const rightCueAt = rightReady && rightMarkersCurrent && !rightIsPlaying &&
+    Math.abs(rightProgress.currentTime - rightMarkers.cue) < 0.05;
+  const midiLedState = React.useMemo(() => ({
+    directoryMode: crateDirectoryMode === true,
+    decks: {
+      left: {
+        loaded: Boolean(leftTrack), playing: leftIsPlaying, cueAt: leftCueAt,
+        cueSet: leftMarkersCurrent && leftMarkers.cueSet === true,
+        loopInSet: leftMarkersCurrent && leftMarkers.in !== null,
+        loopActive: leftMarkersCurrent && leftMarkers.active === true,
+        samplePlaying: Boolean(sampleChannels[0]?.playingId),
+        eqCentered: midiEqCentered.left,
+        fxStrengthMode: midiFxStrengthMode.left
+      },
+      right: {
+        loaded: Boolean(rightTrack), playing: rightIsPlaying, cueAt: rightCueAt,
+        cueSet: rightMarkersCurrent && rightMarkers.cueSet === true,
+        loopInSet: rightMarkersCurrent && rightMarkers.in !== null,
+        loopActive: rightMarkersCurrent && rightMarkers.active === true,
+        samplePlaying: Boolean(sampleChannels[1]?.playingId),
+        eqCentered: midiEqCentered.right,
+        fxStrengthMode: midiFxStrengthMode.right
+      }
+    }
+  }), [crateDirectoryMode, leftTrack, rightTrack, leftIsPlaying, rightIsPlaying, leftCueAt, rightCueAt,
+    leftMarkersCurrent, rightMarkersCurrent, leftMarkers.cueSet, rightMarkers.cueSet,
+    leftMarkers.in, rightMarkers.in, leftMarkers.active, rightMarkers.active,
+    sampleChannels[0]?.playingId, sampleChannels[1]?.playingId, midiEqCentered, midiFxStrengthMode]);
+  const midiLedStateRef = React.useRef(midiLedState);
+  midiLedStateRef.current = midiLedState;
 
   React.useLayoutEffect(() => {
     midiActionRef.current = (action) => {
@@ -1027,6 +1094,7 @@ const Mixer = ({
         }
       });
       midiRef.current = midi;
+      midi.setLedState(midiLedStateRef.current);
       setMidiStatus(midi.getStatus());
       if (onMidiApiChange) onMidiApiChange(midi);
       midi.restore();
@@ -1041,6 +1109,9 @@ const Mixer = ({
       if (midi) midi.destroy();
     };
   }, [onMidiApiChange]);
+  React.useEffect(() => {
+    if (midiRef.current) midiRef.current.setLedState(midiLedState);
+  }, [midiLedState]);
   React.useEffect(() => {
     if (onMidiStatusChange) onMidiStatusChange(midiStatus);
   }, [midiStatus, onMidiStatusChange]);
@@ -1073,6 +1144,8 @@ const Mixer = ({
             name="A"
             midiEQRef={midiEQRef}
             midiFxRef={midiFxRef}
+            onMidiEqStateChange={updateMidiEqCentered}
+            onMidiFxStateChange={updateMidiFxStrengthMode}
             sampleControl={<SampleKnob deck="A" channel={1} samples={fxSamples} control={sampleChannels[0]} />}
             settings={settings}
             track={leftTrack}
@@ -1110,6 +1183,8 @@ const Mixer = ({
             name="B"
             midiEQRef={midiEQRef}
             midiFxRef={midiFxRef}
+            onMidiEqStateChange={updateMidiEqCentered}
+            onMidiFxStateChange={updateMidiFxStrengthMode}
             sampleControl={<SampleKnob deck="B" channel={2} samples={fxSamples} control={sampleChannels[1]} />}
             settings={settings}
             track={rightTrack}

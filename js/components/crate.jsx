@@ -19,7 +19,7 @@ const EXAMPLE_DIRECTORY = {
   ]
 };
 
-const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selectedFxId, onSelectFx, onPreviewFx, onRegisterMidiActions }) => {
+const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selectedFxId, onSelectFx, onPreviewFx, onRegisterMidiActions, onMidiDirectoryModeChange }) => {
   const [directories, setDirectories] = React.useState([]);
   const [bundledFx, setBundledFx] = React.useState([]);
   const [remoteDirectories, setRemoteDirectories] = React.useState([]);
@@ -641,6 +641,10 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
     if (onRegisterMidiActions) onRegisterMidiActions(actions);
     return () => { if (onRegisterMidiActions) onRegisterMidiActions(null); };
   }, [browseFocus, folderPath, directoryEntries, selectedDirectory, selectedDirectoryKey, selectedFileIndex, exampleLoading, onRegisterMidiActions]);
+
+  React.useEffect(() => {
+    if (onMidiDirectoryModeChange) onMidiDirectoryModeChange(browseFocus === 'directories');
+  }, [browseFocus, onMidiDirectoryModeChange]);
 
   React.useEffect(() => {
     setSelectedFileIndex(index => Math.min(index, Math.max(0, visibleEntries.length - 1)));

@@ -170,7 +170,9 @@ const SharedHelp = ({ midiApi, midiStatus }) => {
         onMouseLeave={(event) => event.stopPropagation()}
         aria-label="MIDI controller" hidden={!midiOpen}>
         <strong>Numark Total Control</strong>
-        {midiStatus?.code !== 'idle' && <p className="mb-2">{midiStatus?.code === 'connected' ? 'Connected' : midiStatus?.message}</p>}
+        {midiStatus?.code !== 'idle' && <p className="mb-2">{midiStatus?.code === 'connected'
+          ? `Connected${midiStatus?.lighting?.code === 'connected' ? ' · lights connected' : midiStatus?.lighting?.message ? ` · ${midiStatus.lighting.message}` : ''}`
+          : midiStatus?.message}</p>}
         <div className="d-flex gap-2 mb-2">
           <button type="button" className="btn btn-sm btn-primary"
             disabled={!midiApi || ['requesting', 'connecting'].includes(midiStatus?.code)}
@@ -247,6 +249,7 @@ const App = () => {
   }, []);
   const [midiApi, setMidiApi] = React.useState(null);
   const [midiStatus, setMidiStatus] = React.useState({ code: 'loading', message: 'Loading MIDI…' });
+  const [crateDirectoryMode, setCrateDirectoryMode] = React.useState(false);
   const [fxSamples, setFxSamples] = React.useState([]);
   const samples1 = useSampleChannel(fxSamples);
   const samples2 = useSampleChannel(fxSamples);
@@ -322,6 +325,7 @@ const App = () => {
               getLeftAnalyzer={getLeftAnalyzer}
               getRightAnalyzer={getRightAnalyzer}
                crateMidiRef={crateMidiRef}
+               crateDirectoryMode={crateDirectoryMode}
                onMidiApiChange={setMidiApi}
                onMidiStatusChange={setMidiStatus}
             />
@@ -332,8 +336,9 @@ const App = () => {
               onSelectFx={samples1.select}
               onPreviewFx={samples1.trigger}
               onSelectLeftTrack={handleSelectLeftTrack}
-              onSelectRightTrack={handleSelectRightTrack}
+               onSelectRightTrack={handleSelectRightTrack}
                onRegisterMidiActions={registerCrateMidiActions}
+               onMidiDirectoryModeChange={setCrateDirectoryMode}
             />
           </div>
         </div>

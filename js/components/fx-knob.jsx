@@ -10,7 +10,8 @@ const EFFECTS = [
   { label: 'Beatgrid', engine: 'Beat Repeat' }
 ];
 
-const FxKnob = ({ deck, slot, rack, beatAvailable, midiFxRef }) => {
+const FxKnob = ({ deck, slot, rack, beatAvailable, midiFxRef, onMidiFxStateChange }) => {
+  const midiDeck = deck === 'A' ? 'left' : 'right';
   const [mode, setMode] = React.useState('select');
   const [effectIndex, setEffectIndex] = React.useState(0);
   const [strength, setStrength] = React.useState(0);
@@ -58,7 +59,6 @@ const FxKnob = ({ deck, slot, rack, beatAvailable, midiFxRef }) => {
   // MIDI uses the same mode and value owners as the visible rotary control.
   React.useLayoutEffect(() => {
     if (!midiFxRef) return;
-    const midiDeck = deck === 'A' ? 'left' : 'right';
     const apply = (action) => {
       if (action.slot !== slot) return;
       if (!rack) return;
@@ -104,6 +104,9 @@ const FxKnob = ({ deck, slot, rack, beatAvailable, midiFxRef }) => {
       if (midiFxRef.current[midiDeck][slot] === apply) midiFxRef.current[midiDeck][slot] = null;
     };
   });
+  React.useEffect(() => {
+    if (onMidiFxStateChange) onMidiFxStateChange(midiDeck, slot, mode === 'strength');
+  }, [midiDeck, slot, mode, onMidiFxStateChange]);
   const displayMode = mode === 'select' ? 'Select' : 'Strength';
   const availability = beatgridUnavailable ? ' unavailable' : '';
   const nextMode = mode === 'select' ? 'to strength' : 'to effect selection';

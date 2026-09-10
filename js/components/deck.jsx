@@ -21,6 +21,8 @@ const Deck = ({
   onVolumeChange,
   midiEQRef,
   midiFxRef,
+  onMidiEqStateChange,
+  onMidiFxStateChange,
   sampleControl,
   syncControl,
   onAnalysisChange,
@@ -292,6 +294,8 @@ const Deck = ({
                 onVolumeChange={onVolumeChange}
                 midiEQRef={midiEQRef}
                 midiFxRef={midiFxRef}
+                onMidiEqStateChange={onMidiEqStateChange}
+                onMidiFxStateChange={onMidiFxStateChange}
                 sampleControl={sampleControl}
                 fxRack={fxRack}
                 beatAvailable={beatAvailable}
