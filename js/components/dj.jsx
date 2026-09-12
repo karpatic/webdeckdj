@@ -84,6 +84,7 @@ const useSampleChannel = (samples) => {
     const token = playback.token;
     playback.id = id;
     playback.url = URL.createObjectURL(sample.file);
+    window.dj.routeSample(audio);
     audio.volume = 0.35;
     audio.src = playback.url;
     audio.play().then(() => {

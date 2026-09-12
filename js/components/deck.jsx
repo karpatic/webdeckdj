@@ -131,11 +131,13 @@ const Deck = ({
       trebleFilter.connect(analyserNode);
       analyserNode.connect(gain);
       
+      analyserNode.connect(window.dj.getOutputRouter().pfl[name === 'A' ? 'left' : 'right']);
+
       // Only connect to destination if not using external gain node
       // This is critical - if we're using an external gain node, we assume
       // it's already connected to the destination by the parent component
       if (!gainNode) {
-        gain.connect(audioContext.destination);
+        gain.connect(window.dj.getOutputRouter().master);
       }
       
       setSourceNode(source);

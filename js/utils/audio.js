@@ -87,7 +87,7 @@ const setupAudioNodes = (audioElement, nodes, setAnalyser, deck, eq) => {
   midFilter.connect(trebleFilter);
   trebleFilter.connect(gainNode);
   gainNode.connect(analyser);
-  gainNode.connect(audioContext.destination);
+  gainNode.connect(window.dj.getOutputRouter().master);
 
   // Store nodes for later access
   nodes.source = source;

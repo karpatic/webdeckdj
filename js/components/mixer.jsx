@@ -56,6 +56,16 @@ const Mixer = ({
   const [leftGainNode, setLeftGainNode] = React.useState(null);
   const [rightGainNode, setRightGainNode] = React.useState(null);
   
+  const [monitor, setMonitor] = React.useState({ enabled: false, left: false, right: false, mix: 0, volume: 1, masterVolume: 1 });
+  const changeMonitor = (key, value) => setMonitor(current => {
+    const next = { ...current };
+    next[key] = value;
+    return next;
+  });
+  React.useEffect(() => {
+    if (audioContext) window.dj.getOutputRouter().update(monitor);
+  }, [audioContext, monitor]);
+
   // Store nodes references
   const nodesRef = React.useRef({
     left: {},
@@ -1371,6 +1381,15 @@ const Mixer = ({
             <button id="deck-B-set-cue" type="button" className="btn btn-sm btn-outline-light" disabled={!rightReady} aria-label="Deck B Set Cue" title="Save Deck B current position as cue" onClick={() => transportAction('right', 'setcue')}>Set Cue</button>
             <button id="deck-B-cue" type="button" className="btn btn-sm btn-outline-light" disabled={!rightReady} aria-label="Deck B Cue" title={`Return to ${formatTime(rightMarkers.cue)} and pause Deck B`} onClick={() => transportAction('right', 'cue')}>Cue</button>
           </div>
+        </div>
+        <div className="monitor-controls">
+          <button type="button" id="split-cue" className="btn btn-sm btn-outline-info" aria-pressed={monitor.enabled} aria-describedby="split-cue-help" onClick={() => changeMonitor('enabled', !monitor.enabled)}>{monitor.enabled ? 'Split cue: On' : 'Split cue: Off'}</button>
+          <button type="button" className="btn btn-sm btn-outline-light" aria-pressed={monitor.left} onClick={() => changeMonitor('left', !monitor.left)}>PFL A</button>
+          <button type="button" className="btn btn-sm btn-outline-light" aria-pressed={monitor.right} onClick={() => changeMonitor('right', !monitor.right)}>PFL B</button>
+          <label>PH Mix<input aria-label="PH Mix" title="Cue → master in headphones" type="range" min="0" max="1" step="0.01" value={monitor.mix} onChange={e => changeMonitor('mix', Number(e.target.value))} /></label>
+          <label>PH Vol<input aria-label="PH Vol" type="range" min="0" max="1" step="0.01" value={monitor.volume} onChange={e => changeMonitor('volume', Number(e.target.value))} /></label>
+          <label>Master<input aria-label="Master volume" type="range" min="0" max="1" step="0.01" value={monitor.masterVolume} onChange={e => changeMonitor('masterVolume', Number(e.target.value))} /></label>
+          <small id="split-cue-help">DJ splitter: LEFT headphones · RIGHT speakers (mono). PH Mix: cue → master. Off: stereo master.</small>
         </div>
         <small className="visually-hidden" role="status">{visibleSyncStatus}</small>
       </div>
