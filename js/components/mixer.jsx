@@ -1394,9 +1394,15 @@ const Mixer = ({
           <button type="button" id="split-cue" className="btn btn-sm btn-outline-info" aria-pressed={monitor.enabled} aria-describedby="split-cue-help" onClick={() => changeMonitor('enabled', !monitor.enabled)}>{monitor.enabled ? 'Split cue: On' : 'Split cue: Off'}</button>
           <button type="button" className="btn btn-sm btn-outline-light" aria-pressed={monitor.left} onClick={() => changeMonitor('left', selected => !selected)}>PFL A</button>
           <button type="button" className="btn btn-sm btn-outline-light" aria-pressed={monitor.right} onClick={() => changeMonitor('right', selected => !selected)}>PFL B</button>
-          <label>PH Mix<input aria-label="PH Mix" title="Cue → master in headphones" type="range" min="0" max="1" step="0.01" value={monitor.mix} onChange={e => changeMonitor('mix', Number(e.target.value))} /></label>
-          <label>PH Vol<input aria-label="PH Vol" type="range" min="0" max="1" step="0.01" value={monitor.volume} onChange={e => changeMonitor('volume', Number(e.target.value))} /></label>
-          <label>Master<input aria-label="Master volume" type="range" min="0" max="1" step="0.01" value={monitor.masterVolume} onChange={e => changeMonitor('masterVolume', Number(e.target.value))} /></label>
+          <RotaryControl id="monitor-mix" label="PH Mix" accessibleName="PH Mix" title="Cue → master in headphones"
+            min={0} max={1} step={0.01} value={monitor.mix}
+            onChange={value => changeMonitor('mix', value)} formatValue={value => Number(value).toFixed(2)} />
+          <RotaryControl id="monitor-volume" label="PH Vol" accessibleName="PH Vol"
+            min={0} max={1} step={0.01} value={monitor.volume}
+            onChange={value => changeMonitor('volume', value)} formatValue={value => Number(value).toFixed(2)} />
+          <RotaryControl id="monitor-masterVolume" label="Master" accessibleName="Master volume"
+            min={0} max={1} step={0.01} value={monitor.masterVolume}
+            onChange={value => changeMonitor('masterVolume', value)} formatValue={value => Number(value).toFixed(2)} />
           <small id="split-cue-help">DJ splitter: LEFT headphones · RIGHT speakers (mono). PH Mix: cue → master. Off: stereo master.</small>
         </div>
         <small className="visually-hidden" role="status">{visibleSyncStatus}</small>

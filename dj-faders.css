@@ -643,7 +643,9 @@
 }
 
 .monitor-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; padding: 8px; }
-.monitor-controls label { display: flex; align-items: center; gap: 5px; font-size: 11px; margin: 0; }
-.monitor-controls input { width: 65px; min-width: 0; }
+.monitor-controls .rotary-field { grid-template-columns: max-content max-content; justify-content: center; gap: 3px 6px; width: 88px; min-width: 88px; }
+.monitor-controls .rotary-field .eq-label { grid-column: 1; grid-row: 1; width: auto; min-width: max-content; writing-mode: horizontal-tb; text-orientation: mixed; white-space: nowrap; overflow-wrap: normal; word-break: normal; font-size: 11px; }
+.monitor-controls .rotary-field .eq-value { grid-column: 2; grid-row: 1; min-width: 0; font-size: 11px; font-variant-numeric: tabular-nums; }
+.monitor-controls .rotary-control { grid-column: 1 / -1; grid-row: 2; }
 .monitor-controls small { flex-basis: 100%; text-align: center; font-size: 10px; color: #bbb; }
 .monitor-controls button[aria-pressed="true"] { background: #087e8b; color: white; }

@@ -22,6 +22,18 @@ try {
   await page.goto(process.env.TEST_URL || 'http://localhost:8879/dj.html');
   await page.waitForSelector('#split-cue', { timeout: 60000 });
   assert.equal(await page.locator('#split-cue').getAttribute('aria-pressed'), 'false');
+  for (const [id, initial] of [['monitor-mix', '0'], ['monitor-volume', '1'], ['monitor-masterVolume', '1']]) {
+    const knob = page.locator(`#${id}`);
+    assert.equal(await knob.getAttribute('aria-valuenow'), initial);
+    assert.equal(await knob.getAttribute('aria-valuemin'), '0');
+    assert.equal(await knob.getAttribute('aria-valuemax'), '1');
+    await knob.press('Home');
+    await knob.press('ArrowUp');
+    assert.equal(await knob.getAttribute('aria-valuenow'), '0.01');
+    await knob.press('End');
+    assert.equal(await knob.getAttribute('aria-valuenow'), '1');
+    await knob.press(initial === '0' ? 'Home' : 'End');
+  }
   await page.getByRole('button', { name: 'MIDI', exact: true }).click();
   await page.waitForFunction(() => window.midiSent.length >= 39);
   await page.getByRole('button', { name: 'MIDI', exact: true }).click();
@@ -41,7 +53,7 @@ try {
     const label = cc === 0x16 ? 'PH Mix' : 'PH Vol';
     for (const value of [0, 64, 127]) {
       await send([0xb0, cc, value]);
-      await page.waitForFunction(({ label, value }) => Math.abs(Number(document.querySelector('input[aria-label="' + label + '"]').value) - value / 127) < .011, { label, value });
+      await page.waitForFunction(({ label, value }) => Math.abs(Number(document.querySelector('.rotary-control[aria-label="' + label + '"]').getAttribute('aria-valuenow')) - value / 127) < .011, { label, value });
     }
   }
   await send([0xb0, 0x16, 0], [0xb0, 0x0f, 127]);
@@ -49,10 +61,23 @@ try {
   await page.waitForSelector('#split-cue[aria-pressed="true"]');
   await send([0x90, 0x30, 127], [0x90, 0x30, 0]);
   await page.waitForFunction(() => Array.from(document.querySelectorAll('button')).some(b => b.textContent === 'PFL A' && b.getAttribute('aria-pressed') === 'true')); 
-  for (const [width, height] of [[1440, 900], [393, 852], [852, 393]]) {
+  for (const [width, height] of [[1440, 900], [393, 852], [852, 393], [412, 915], [915, 412]]) {
     await page.setViewportSize({ width, height });
     await page.screenshot({ path: `/tmp/split-cue-${width}.png`, fullPage: true });
     assert.ok(await page.locator('#split-cue').isVisible());
+    for (const id of ['monitor-mix', 'monitor-volume', 'monitor-masterVolume']) {
+      const layout = await page.locator(`#${id}-label`).evaluate(label => {
+        const knob = document.getElementById(label.id.replace('-label', ''));
+        const r = label.getBoundingClientRect(), k = knob.getBoundingClientRect();
+        const range = document.createRange(); range.selectNodeContents(label);
+        return { text: label.textContent, mode: getComputedStyle(label).writingMode,
+          lines: range.getClientRects().length, fits: label.scrollWidth <= label.clientWidth,
+          above: r.bottom <= k.top, visible: r.x >= 0 && r.right <= innerWidth };
+      });
+      assert.equal(layout.mode, 'horizontal-tb', JSON.stringify(layout));
+      assert.equal(layout.lines, 1, JSON.stringify(layout));
+      assert.ok(layout.fits && layout.above && layout.visible, JSON.stringify(layout));
+    }
     const bounds = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth }));
     const monitorBounds = await page.locator('.monitor-controls').boundingBox();
     assert.ok(monitorBounds.x >= 0 && monitorBounds.x + monitorBounds.width <= bounds.width, JSON.stringify(monitorBounds));
