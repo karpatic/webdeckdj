@@ -68,8 +68,8 @@ node(root, 'desc', id='guide-desc').text = (
     'Mapped controls include both FX knobs and their mode buttons, Fine Pitch and Tap repurposed '
     'for Samples1 and Samples2, Gain repurposed for pitch, persistent pitch step buttons, jog wheels, '
     'deck volume, crossfader, push-to-kill EQ, manual Loop In and Out, Cue, Set Cue, Play, and crate '
-    'browse, enter, directory, and load controls. Gray controls are not mapped: PFL, Key, Sync, Par '
-    'and Par On/Off, master and headphone controls, and physical pitch sliders. Hardware has not been '
+    'browse, enter, directory, load, PFL A/B, PH Mix, and PH Vol controls. Gray controls are not mapped: Key, Sync, Par '
+    'and Par On/Off, master controls, and physical pitch sliders. Hardware has not been '
     'acceptance-tested. EQ kill is the knob press; the small adjacent circles are LEDs.')
 node(root, 'rect', x=0, y=0, width=1520, height=1760, rx=24, fill='#0b1018')
 text(root, 60, 50, 'NUMARK TOTAL CONTROL', 32, anchor='start', weight=700)
@@ -191,12 +191,14 @@ text(scene, 567, 1240, '← A', 25, color=cyan)
 text(scene, 833, 1240, 'B →', 25, color=cyan)
 
 # Explicitly name the prominent neutral controls so gray does not imply an omitted claim.
-for x, y, label in [(80, 62, 'PFL'), (80, 165, 'KEY'), (80, 270, 'SYNC'),
-                    (1317, 62, 'PFL'), (1317, 165, 'KEY'), (1317, 270, 'SYNC')]:
+for x, y, label in [(80, 165, 'KEY'), (80, 270, 'SYNC'),
+                    (1317, 165, 'KEY'), (1317, 270, 'SYNC')]:
     text(scene, x, y + 7, label, 19, color=gray)
 text(scene, 700, 113, 'MASTER', 18, color=gray)
-text(scene, 700, 239, 'PH MIX', 17, color=gray)
-text(scene, 700, 365, 'PH VOL', 17, color=gray)
+button(scene, 80, 62, ['PFL A'], cyan)
+button(scene, 1317, 62, ['PFL B'], cyan)
+knob(scene, 700, 232, ['PH MIX', 'cue / master'], cyan, sizes=[19, 12])
+knob(scene, 700, 358, ['PH VOL', 'headphones'], cyan, sizes=[19, 12])
 
 # Behavior legend uses app semantics, not the hardware's original software labels.
 text(root, 60, 1485, 'HOW THE CURRENT APP USES IT', 23, color='#e8eef5', anchor='start')
@@ -210,9 +212,9 @@ text(root, 255, 1610, 'Cue returns to the saved cue and pauses · Set Cue saves 
      color='#d9e1eb', anchor='start', weight=400)
 text(root, 255, 1642, 'Loop In saves a new start · Loop Out sets/activates or exits the manual loop.', 20,
      color='#d9e1eb', anchor='start', weight=400)
-text(root, 60, 1692, 'Hardware layout source-verified · input only · no LED output · not hardware acceptance-tested',
+text(root, 60, 1692, 'PFL selects monitor decks · PH Mix / Vol shape headphones · Split cue: on-screen output toggle',
      19, color=gray, anchor='start', weight=400)
-text(root, 60, 1728, 'Gray: PFL · Key · Sync · PAR / PAR On-Off · master / headphones · physical pitch sliders',
+text(root, 60, 1728, 'Gray: Key · Sync · PAR / PAR On-Off · master · physical pitch sliders',
      18, color=gray, anchor='start', weight=400)
 
 # Defense in depth: output only inert drawing tags and local fragment references.

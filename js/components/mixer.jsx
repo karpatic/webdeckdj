@@ -59,7 +59,7 @@ const Mixer = ({
   const [monitor, setMonitor] = React.useState({ enabled: false, left: false, right: false, mix: 0, volume: 1, masterVolume: 1 });
   const changeMonitor = (key, value) => setMonitor(current => {
     const next = { ...current };
-    next[key] = value;
+    next[key] = typeof value === 'function' ? value(current[key]) : value;
     return next;
   });
   React.useEffect(() => {
@@ -1063,7 +1063,7 @@ const Mixer = ({
     directoryMode: crateDirectoryMode === true,
     decks: {
       left: {
-        loaded: Boolean(leftTrack), playing: leftIsPlaying, cueAt: leftCueAt,
+        pfl: monitor.left, loaded: Boolean(leftTrack), playing: leftIsPlaying, cueAt: leftCueAt,
         cueSet: leftMarkersCurrent && leftMarkers.cueSet === true,
         loopInSet: leftMarkersCurrent && leftMarkers.in !== null,
         loopActive: leftMarkersCurrent && leftMarkers.active === true,
@@ -1072,7 +1072,7 @@ const Mixer = ({
         fxStrengthMode: midiFxStrengthMode.left
       },
       right: {
-        loaded: Boolean(rightTrack), playing: rightIsPlaying, cueAt: rightCueAt,
+        pfl: monitor.right, loaded: Boolean(rightTrack), playing: rightIsPlaying, cueAt: rightCueAt,
         cueSet: rightMarkersCurrent && rightMarkers.cueSet === true,
         loopInSet: rightMarkersCurrent && rightMarkers.in !== null,
         loopActive: rightMarkersCurrent && rightMarkers.active === true,
@@ -1081,7 +1081,7 @@ const Mixer = ({
         fxStrengthMode: midiFxStrengthMode.right
       }
     }
-  }), [crateDirectoryMode, leftTrack, rightTrack, leftIsPlaying, rightIsPlaying, leftCueAt, rightCueAt,
+  }), [monitor.left, monitor.right, crateDirectoryMode, leftTrack, rightTrack, leftIsPlaying, rightIsPlaying, leftCueAt, rightCueAt,
     leftMarkersCurrent, rightMarkersCurrent, leftMarkers.cueSet, rightMarkers.cueSet,
     leftMarkers.in, rightMarkers.in, leftMarkers.active, rightMarkers.active,
     sampleChannels[0]?.playingId, sampleChannels[1]?.playingId, midiEqCentered, midiFxStrengthMode]);
@@ -1090,6 +1090,14 @@ const Mixer = ({
 
   React.useLayoutEffect(() => {
     midiActionRef.current = (action) => {
+      if (action.type === 'pfl') {
+        changeMonitor(action.deck, selected => !selected);
+        return;
+      }
+      if (action.type === 'monitorMix' || action.type === 'monitorVolume') {
+        changeMonitor(action.type === 'monitorMix' ? 'mix' : 'volume', action.value);
+        return;
+      }
       if (action.type === 'crossfader') {
         setCrossfader(Math.round(action.value * 100));
         return;
@@ -1384,8 +1392,8 @@ const Mixer = ({
         </div>
         <div className="monitor-controls">
           <button type="button" id="split-cue" className="btn btn-sm btn-outline-info" aria-pressed={monitor.enabled} aria-describedby="split-cue-help" onClick={() => changeMonitor('enabled', !monitor.enabled)}>{monitor.enabled ? 'Split cue: On' : 'Split cue: Off'}</button>
-          <button type="button" className="btn btn-sm btn-outline-light" aria-pressed={monitor.left} onClick={() => changeMonitor('left', !monitor.left)}>PFL A</button>
-          <button type="button" className="btn btn-sm btn-outline-light" aria-pressed={monitor.right} onClick={() => changeMonitor('right', !monitor.right)}>PFL B</button>
+          <button type="button" className="btn btn-sm btn-outline-light" aria-pressed={monitor.left} onClick={() => changeMonitor('left', selected => !selected)}>PFL A</button>
+          <button type="button" className="btn btn-sm btn-outline-light" aria-pressed={monitor.right} onClick={() => changeMonitor('right', selected => !selected)}>PFL B</button>
           <label>PH Mix<input aria-label="PH Mix" title="Cue → master in headphones" type="range" min="0" max="1" step="0.01" value={monitor.mix} onChange={e => changeMonitor('mix', Number(e.target.value))} /></label>
           <label>PH Vol<input aria-label="PH Vol" type="range" min="0" max="1" step="0.01" value={monitor.volume} onChange={e => changeMonitor('volume', Number(e.target.value))} /></label>
           <label>Master<input aria-label="Master volume" type="range" min="0" max="1" step="0.01" value={monitor.masterVolume} onChange={e => changeMonitor('masterVolume', Number(e.target.value))} /></label>

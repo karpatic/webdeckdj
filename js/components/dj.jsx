@@ -195,7 +195,7 @@ const SharedHelp = ({ midiApi, midiStatus }) => {
             onClick={() => midiApi && midiApi.connect({ inputId: input.id })}>{input.name}</button>)}
         </div>}
         <p className="small mb-2">The guide shows the current input mapping: dual FX modes, independent Samples1/2, Gain-to-pitch, lit pitch-step feedback, playing/paused jog behavior, EQ push-kill, loops, transport, mixing, and crate navigation. Gray controls are not mapped. Browse press enters a folder; Load A/B never starts playback.</p>
-        <img className="midi-guide-image" src="./assets/midi/numark-total-control/numark-total-control-guide.svg?v=current-app-map-2" alt="Current WebDeckDJ MIDI mapping for the Numark Total Control; gray controls are unmapped" />
+        <img className="midi-guide-image" src="./assets/midi/numark-total-control/numark-total-control-guide.svg?v=monitor-midi-1" alt="Current WebDeckDJ MIDI mapping for the Numark Total Control; gray controls are unmapped" />
       </div>
       <div
         id="shared-dj-help-panel"

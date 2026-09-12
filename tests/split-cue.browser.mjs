@@ -8,12 +8,46 @@ try {
   const page = await browser.newPage();
   page.on("pageerror", error => console.error(error.message));
   page.on("console", message => { if (message.type() === "error") console.error(message.text()); });
+  await page.addInitScript(() => {
+    const input = new EventTarget();
+    Object.assign(input, { id: 'synthetic-total-control', type: 'input', manufacturer: 'Numark', name: 'Total Control', state: 'connected', connection: 'closed',
+      async open() { this.connection = 'open'; }, async close() { this.connection = 'closed'; } });
+    const output = { ...input, type: 'output', id: 'synthetic-output', send(data) { window.midiSent.push(Array.from(data)); } };
+    const access = new EventTarget();
+    access.inputs = new Map([[input.id, input]]); access.outputs = new Map([[output.id, output]]);
+    window.midiSent = [];
+    window.sendMidi = data => { const event = new Event('midimessage'); event.data = new Uint8Array(data); input.dispatchEvent(event); };
+    Object.defineProperty(navigator, 'requestMIDIAccess', { value: async () => access });
+  });
   await page.goto(process.env.TEST_URL || 'http://localhost:8879/dj.html');
   await page.waitForSelector('#split-cue', { timeout: 60000 });
   assert.equal(await page.locator('#split-cue').getAttribute('aria-pressed'), 'false');
+  await page.getByRole('button', { name: 'MIDI', exact: true }).click();
+  await page.waitForFunction(() => window.midiSent.length >= 39);
+  await page.getByRole('button', { name: 'MIDI', exact: true }).click();
+  const send = async (...messages) => page.evaluate(messages => messages.forEach(window.sendMidi), messages);
+  const pfl = deck => page.getByRole('button', { name: 'PFL ' + deck, exact: true });
+  await send([0x90, 0x30, 127], [0x90, 0x30, 127], [0x90, 0x30, 0]);
+  await page.waitForFunction(() => document.querySelector('button[aria-pressed="true"]')?.textContent === 'PFL A');
+  assert.equal(await pfl('A').getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.locator('#split-cue').getAttribute('aria-pressed'), 'false');
+  await send([0x90, 0x30, 127], [0x80, 0x30, 64], [0x90, 0x37, 127], [0x80, 0x37, 0]);
+  await page.waitForFunction(() => window.midiSent.some(d => d[1] === 0x40 && d[2] === 127));
+  assert.equal(await pfl('A').getAttribute('aria-pressed'), 'false');
+  assert.equal(await pfl('B').getAttribute('aria-pressed'), 'true');
+  await pfl('B').click();
+  await page.waitForFunction(() => window.midiSent.filter(d => d[1] === 0x40).at(-1)[2] === 0);
+  for (const cc of [0x16, 0x0f]) {
+    const label = cc === 0x16 ? 'PH Mix' : 'PH Vol';
+    for (const value of [0, 64, 127]) {
+      await send([0xb0, cc, value]);
+      await page.waitForFunction(({ label, value }) => Math.abs(Number(document.querySelector('input[aria-label="' + label + '"]').value) - value / 127) < .011, { label, value });
+    }
+  }
+  await send([0xb0, 0x16, 0], [0xb0, 0x0f, 127]);
   await page.locator('#split-cue').click();
   await page.waitForSelector('#split-cue[aria-pressed="true"]');
-  await page.getByRole('button', { name: 'PFL A', exact: true }).click();
+  await send([0x90, 0x30, 127], [0x90, 0x30, 0]);
   await page.waitForFunction(() => Array.from(document.querySelectorAll('button')).some(b => b.textContent === 'PFL A' && b.getAttribute('aria-pressed') === 'true')); 
   for (const [width, height] of [[1440, 900], [393, 852], [852, 393]]) {
     await page.setViewportSize({ width, height });
@@ -30,8 +64,8 @@ try {
   await page.getByRole('button', { name: 'Load to Deck A', exact: true }).click();
   await page.getByRole('button', { name: 'Play Deck A', exact: true }).click();
   await page.waitForFunction(() => Array.from(document.querySelectorAll('audio')).some(a => !a.paused && a.currentTime > 0.1));
-  await page.locator('#deck-A-volume').focus();
-  await page.keyboard.press('Home');
+  await send([0xb0, 8, 0]);
+  await page.waitForFunction(() => document.querySelector('#deck-A-volume').value === '0');
   await page.evaluate(() => {
     const context = window.dj.audio.getAudioContext();
     const router = window.dj.getOutputRouter();
@@ -44,13 +78,23 @@ try {
     const peak = node => { const data = new Float32Array(node.fftSize); node.getFloatTimeDomainData(data); return Math.max(...data.map(Math.abs)); };
     return peak(window.testCue) > 0.001 && peak(window.testMaster) < 0.00001;
   });
-  console.log('Bundled MP3 with fader down: PFL audible, master silent');
+  console.log('Synthetic MIDI through actual input handler: PFL A/B, releases, GUI/LED sync, PH Mix/Vol 0/64/127; bundled MP3 with MIDI fader down: PFL audible, master silent');
+  await send([0x90, 0x30, 127], [0x90, 0x30, 0]);
+  await page.waitForFunction(() => { const d = new Float32Array(window.testCue.fftSize); window.testCue.getFloatTimeDomainData(d); return Math.max(...d.map(Math.abs)) < .00001; });
+  await send([0x90, 0x30, 127], [0x90, 0x30, 0]);
+  await page.waitForFunction(() => { const d = new Float32Array(window.testCue.fftSize); window.testCue.getFloatTimeDomainData(d); return Math.max(...d.map(Math.abs)) > .001; });
+  // Render the actual monitor state last delivered by Mixer, after MIDI knob changes.
+  await page.evaluate(() => { const r = window.dj.getOutputRouter(); const update = r.update; r.update = state => { window.monitorSnapshot = state; return update(state); }; });
+  await send([0xb0, 0x16, 64], [0xb0, 0x0f, 64]);
+  await page.waitForFunction(() => window.monitorSnapshot?.mix === 64 / 127 && window.monitorSnapshot?.volume === 64 / 127);
+  const midiMonitor = await page.evaluate(() => window.monitorSnapshot);
   const source = await readFile(new URL('../js/audio/output-router.js', import.meta.url), 'utf8');
-  const results = await page.evaluate(async source => {
+  const results = await page.evaluate(async ({ source, midiMonitor }) => {
     // Render the shipped output graph, with distinct stereo signals per deck.
     const factory = new Function('window', source + '; return window.dj.createOutputRouter;')({});
     const results = [];
     for (const scenario of [
+      { ...midiMonitor, name: 'MIDI midpoint mix and volume', a: 0, b: 1, expected: [(0.3 * (1 - 64 / 127) + 0.1 * 64 / 127) * 64 / 127, .1] },
       { name: 'fader-down PFL / no cue leak', enabled: true, left: true, a: 0, b: 0, expected: [.3, 0] },
       { name: 'master only', enabled: true, a: 0, b: 1, expected: [0, .1] },
       { name: 'isolated cue and master', enabled: true, left: true, a: 0, b: 1, expected: [.3, .1] },
@@ -82,6 +126,6 @@ try {
       results.push({ name: scenario.name, actual });
     }
     return results;
-  }, source);
+  }, { source, midiMonitor });
   console.log(JSON.stringify(results, null, 2));
 } finally { await browser.close(); }

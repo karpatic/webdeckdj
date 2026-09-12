@@ -1,5 +1,15 @@
 # Numark Total Control — input and LED integration
 
+## Monitor mapping — September 11, 2026
+
+Author: Codex app agent
+
+PFL A/B use input Notes 48/55 (`90 30 7F` / `90 37 7F`); PH Mix uses absolute CC 22 (`B0 16 vv`), PH Vol CC 15 (`B0 0F vv`). These agree with the manufacturer diagram and the preserved Mixxx input XML cited below. Knobs use `vv / 127`: Mix moves cue → master; Vol moves silence → full headphone level. They update the same React monitor state as the GUI, including before loading a track. PFL toggles use functional updates; held presses and both zero-velocity Note On and Note Off releases never double-toggle. PFL output LEDs are Notes 53/64 (`90 35/40 7F` selected, `00` unselected), independently verified in the wiki LED table; they reflect selection even with Split cue off and resynchronize on output reconnect.
+
+Split cue remains the explicit on-screen output-mode toggle. No hardware combination is assigned. Off preserves stereo master; on sends mono headphones LEFT and master RIGHT. Selected PFL is pre-volume/pre-crossfader. Transport Cue still returns to the cue point and pauses; it never selects monitoring. Physical master and all unrelated mappings remain unchanged. Absolute controls retain immediate takeover (no motorized knob or pickup).
+
+Verification for this update: 15 executable Node tests and the full app bundle passed. `tests/split-cue.browser.mjs` injects synthetic Web MIDI ports into an isolated Chrome instance and drives the actual adapter → Mixer handler → React state → output router. It verifies Notes 48/55 with held repeats, zero-velocity and Note Off releases, GUI-to-PFL LED state, CC 22/15 values 0/64/127, and a bundled MP3 playing with MIDI CC 8 at zero: PFL has signal while master is silent, and deselecting PFL silences that tap. Nine OfflineAudioContext renders verify cue/master isolation, both PFLs, stereo restoration, and the actual MIDI-delivered midpoint mix/volume state (left 0.1003906, right 0.1). Headless geometry checks passed at 1440×900, 393×852, and 852×393; these are not headed-device or real controller acceptance. No physical MIDI capture or hardware listening test was performed.
+
 ## Delivery boundary
 
 `js/midi/numark-total-control.mjs` is executable native JavaScript with no dependencies, SysEx, DOM mutation, or audio calls. It is wired through the native `window.webDeckMidiReady` bridge in `dj.html` to Mixer semantic actions and state-derived LED output. Importing/constructing the adapter does not request permission or acquire a port. MIDI output is optional: input remains usable when no safe matching output can be selected or an LED send fails.
@@ -25,6 +35,7 @@ The table below joins physical coordinates—not equal note numbers—to the exi
 
 | Current physical/app control | Input | LED output | State represented by the LED |
 | --- | --- | --- | --- |
+| A / B PFL | Note 48 / 55 | Note 53 (`0x35`) / 64 (`0x40`) | Deck selected for monitoring |
 | A / B Play | Note 67 / 76 | Note 62 (`0x3e`) / 78 (`0x4e`) | Deck is playing |
 | A / B Cue | Note 51 / 60 | Note 60 (`0x3c`) / 76 (`0x4c`) | Loaded deck is paused at its cue point |
 | A / B Set Cue | Note 59 / 68 | Note 61 (`0x3d`) / 77 (`0x4d`) | Cue was explicitly set for the current track |

@@ -485,3 +485,29 @@ test('output matcher accepts only Numark Total Control-style output names', () =
   assert.equal(isTotalControlOutput({ type: 'input', name: 'Total Control', manufacturer: 'Numark' }), false);
   assert.equal(isTotalControlOutput({ type: 'output', name: 'Other Controller', manufacturer: 'Numark' }), false);
 });
+
+// Author: Codex app agent, 2026-09-11
+test('monitor inputs and PFL output are distinct from transport Cue', async () => {
+  const { createTotalControlDispatcher } = await import('../js/midi/numark-total-control.mjs');
+  const actions = [];
+  const dispatcher = createTotalControlDispatcher(action => actions.push(action));
+  for (const [note, deck] of [[0x30, 'left'], [0x37, 'right']]) {
+    for (const channel of [0, 15]) {
+      dispatcher.handle([0x90 + channel, note, 127]);
+      dispatcher.handle([0x90 + channel, note, 127]);
+      dispatcher.handle([0x90 + channel, note, 0]);
+      dispatcher.handle([0x90 + channel, note, 127]);
+      dispatcher.handle([0x80 + channel, note, 64]);
+      assert.deepEqual(actions.splice(0), [{ type: 'pfl', deck }, { type: 'pfl', deck }]);
+    }
+  }
+  for (const [cc, type] of [[22, 'monitorMix'], [15, 'monitorVolume']]) {
+    for (const value of [0, 64, 127]) assert.deepEqual(decodeTotalControl([0xb0, cc, value]), { type, value: value / 127 });
+  }
+  for (const [note, deck] of [[51, 'left'], [60, 'right']]) assert.deepEqual(decodeTotalControl([0x90, note, 127]), { type: 'cue', deck });
+  const state = getTotalControlLedState({ decks: { left: { pfl: true }, right: { pfl: false } } });
+  assert.equal(state.get(0x35), true);
+  assert.equal(state.get(0x40), false);
+  assert.equal(state.get(0x3c), false);
+  assert.equal(state.get(0x4c), false);
+});

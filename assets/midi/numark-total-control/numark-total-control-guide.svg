@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 1760" width="1520" height="1760" role="img" aria-labelledby="guide-title guide-desc">
   <title id="guide-title">Numark Total Control — current WebDeckDJ MIDI mapping</title>
-  <desc id="guide-desc">Source-verified top view of the current app mapping. Deck A is left and Deck B is right. Mapped controls include both FX knobs and their mode buttons, Fine Pitch and Tap repurposed for Samples1 and Samples2, Gain repurposed for pitch, persistent pitch step buttons, jog wheels, deck volume, crossfader, push-to-kill EQ, manual Loop In and Out, Cue, Set Cue, Play, and crate browse, enter, directory, and load controls. Gray controls are not mapped: PFL, Key, Sync, Par and Par On/Off, master and headphone controls, and physical pitch sliders. Hardware has not been acceptance-tested. EQ kill is the knob press; the small adjacent circles are LEDs.</desc>
+  <desc id="guide-desc">Source-verified top view of the current app mapping. Deck A is left and Deck B is right. Mapped controls include both FX knobs and their mode buttons, Fine Pitch and Tap repurposed for Samples1 and Samples2, Gain repurposed for pitch, persistent pitch step buttons, jog wheels, deck volume, crossfader, push-to-kill EQ, manual Loop In and Out, Cue, Set Cue, Play, and crate browse, enter, directory, load, PFL A/B, PH Mix, and PH Vol controls. Gray controls are not mapped: Key, Sync, Par and Par On/Off, master controls, and physical pitch sliders. Hardware has not been acceptance-tested. EQ kill is the knob press; the small adjacent circles are LEDs.</desc>
   <rect x="0" y="0" width="1520" height="1760" rx="24" fill="#0b1018"/>
   <text x="60" y="50" fill="#e8eef5" font-size="32" font-weight="700" text-anchor="start" font-family="DejaVu Sans, sans-serif">NUMARK TOTAL CONTROL</text>
   <text x="1460" y="50" fill="#97a6b9" font-size="22" font-weight="600" text-anchor="end" font-family="DejaVu Sans, sans-serif">MIDI GUIDE</text>
@@ -239,15 +239,21 @@
     <polyline points="700,1148 700,1166" fill="none" stroke="#77d5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
     <text x="567" y="1240" fill="#77d5ff" font-size="25" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">← A</text>
     <text x="833" y="1240" fill="#77d5ff" font-size="25" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">B →</text>
-    <text x="80" y="69" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PFL</text>
     <text x="80" y="172" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">KEY</text>
     <text x="80" y="277" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">SYNC</text>
-    <text x="1317" y="69" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PFL</text>
     <text x="1317" y="172" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">KEY</text>
     <text x="1317" y="277" fill="#97a6b9" font-size="19" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">SYNC</text>
     <text x="700" y="113" fill="#97a6b9" font-size="18" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">MASTER</text>
-    <text x="700" y="239" fill="#97a6b9" font-size="17" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PH MIX</text>
-    <text x="700" y="365" fill="#97a6b9" font-size="17" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PH VOL</text>
+    <rect x="29.0" y="33.0" width="102" height="58" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="80" y="69" fill="#77d5ff" font-size="20" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PFL A</text>
+    <rect x="1266.0" y="33.0" width="102" height="58" rx="8" fill="#172b38" stroke="#77d5ff" stroke-width="3"/>
+    <text x="1317" y="69" fill="#77d5ff" font-size="20" font-weight="600" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PFL B</text>
+    <circle cx="700" cy="232" r="48" fill="#172330" stroke="#77d5ff" stroke-width="4"/>
+    <text x="700" y="230" fill="#77d5ff" font-size="19" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PH MIX</text>
+    <text x="700" y="254" fill="#77d5ff" font-size="12" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">cue / master</text>
+    <circle cx="700" cy="358" r="48" fill="#172330" stroke="#77d5ff" stroke-width="4"/>
+    <text x="700" y="356" fill="#77d5ff" font-size="19" font-weight="700" text-anchor="middle" font-family="DejaVu Sans, sans-serif">PH VOL</text>
+    <text x="700" y="380" fill="#77d5ff" font-size="12" font-weight="500" text-anchor="middle" font-family="DejaVu Sans, sans-serif">headphones</text>
   </g>
   <text x="60" y="1485" fill="#e8eef5" font-size="23" font-weight="600" text-anchor="start" font-family="DejaVu Sans, sans-serif">HOW THE CURRENT APP USES IT</text>
   <text x="60" y="1530" fill="#c4a1ff" font-size="22" font-weight="600" text-anchor="start" font-family="DejaVu Sans, sans-serif">FX 1 / FX 2</text>
@@ -256,6 +262,6 @@
   <text x="60" y="1610" fill="#77d5ff" font-size="22" font-weight="600" text-anchor="start" font-family="DejaVu Sans, sans-serif">CUE / LOOPS</text>
   <text x="255" y="1610" fill="#d9e1eb" font-size="20" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Cue returns to the saved cue and pauses · Set Cue saves the current position.</text>
   <text x="255" y="1642" fill="#d9e1eb" font-size="20" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Loop In saves a new start · Loop Out sets/activates or exits the manual loop.</text>
-  <text x="60" y="1692" fill="#97a6b9" font-size="19" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Hardware layout source-verified · input only · no LED output · not hardware acceptance-tested</text>
-  <text x="60" y="1728" fill="#97a6b9" font-size="18" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Gray: PFL · Key · Sync · PAR / PAR On-Off · master / headphones · physical pitch sliders</text>
+  <text x="60" y="1692" fill="#97a6b9" font-size="19" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">PFL selects monitor decks · PH Mix / Vol shape headphones · Split cue: on-screen output toggle</text>
+  <text x="60" y="1728" fill="#97a6b9" font-size="18" font-weight="400" text-anchor="start" font-family="DejaVu Sans, sans-serif">Gray: Key · Sync · PAR / PAR On-Off · master · physical pitch sliders</text>
 </svg>

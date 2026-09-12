@@ -4,6 +4,8 @@
 // see docs/numark-midi.md for URL/hash. LED OUTPUT assignments are a separate table and are never
 // substituted for the input notes below.
 const notes = new Map([
+  [0x30, { type: 'pfl', deck: 'left' }],
+  [0x37, { type: 'pfl', deck: 'right' }],
   [67, { type: 'play', deck: 'left' }],
   [51, { type: 'cue', deck: 'left' }],
   [59, { type: 'setcue', deck: 'left' }],
@@ -34,6 +36,8 @@ const notes = new Map([
   [0x36, { type: 'fxmode', deck: 'right', slot: 1 }]
 ]);
 const controllers = new Map([
+  [0x16, { type: 'monitorMix' }],
+  [0x0f, { type: 'monitorVolume' }],
   [0x00, { type: 'fxvalue', deck: 'left', slot: 0 }],
   [0x04, { type: 'fxvalue', deck: 'right', slot: 0 }],
   [0x01, { type: 'fxvalue', deck: 'left', slot: 1 }],
@@ -72,6 +76,7 @@ export const TOTAL_CONTROL_LED_NOTES = Object.freeze(
 
 export const TOTAL_CONTROL_APP_LED_NOTES = Object.freeze({
   left: Object.freeze({
+    pfl: 0x35,
     samplePlaying: 0x30,
     fxStrengthMode: Object.freeze([0x33, 0x31]),
     pitchStep: Object.freeze({ decrease: 0x38, increase: 0x39 }),
@@ -85,6 +90,7 @@ export const TOTAL_CONTROL_APP_LED_NOTES = Object.freeze({
   }),
   right: Object.freeze({
     fxStrengthMode: Object.freeze([0x44, 0x45]),
+    pfl: 0x40,
     samplePlaying: 0x47,
     pitchStep: Object.freeze({ decrease: 0x48, increase: 0x49 }),
     loopInSet: 0x4a,
@@ -108,6 +114,7 @@ export function getTotalControlLedState(appState = {}) {
   ['left', 'right'].forEach(deck => {
     const deckState = decks[deck] || {};
     const output = TOTAL_CONTROL_APP_LED_NOTES[deck];
+    state.set(output.pfl, deckState.pfl === true);
     state.set(output.playing, deckState.playing === true);
     state.set(output.loaded, deckState.loaded === true);
     state.set(output.cueAt, deckState.cueAt === true);

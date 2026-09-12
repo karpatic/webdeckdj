@@ -32,9 +32,11 @@ For **both decks**, the art follows the decoder and current Mixer owners:
 
 **Crate navigation:** Directory returns to the folder list; Browse turns the selection through folders/files; pressing Browse enters the selected folder; Load A/B loads the selected track without starting playback. The manufacturer MIDI diagram places combined Note 79/CC 26 on that encoder, independently of the app dispatch. This is source verification, not an attached-unit acceptance result.
 
+**Monitoring:** PFL A/B (top outer buttons) toggle deck monitoring; PH Mix and PH Vol (center knobs) control cue-to-master blend and headphone level. GUI and MIDI share state, with PFL selection reflected in its LEDs. Split cue stays an explicit on-screen output toggle: LEFT headphones, RIGHT master, both mono; off restores stereo master. PFL works with deck faders down.
+
 **Cue behavior:** Cue returns to the saved cue and pauses; Set Cue saves the current position. Loop In saves a fresh start; Loop Out sets a later end and activates the manual loop, or exits it when already active. Auto Loop lengths, measured-downbeat controls, timeline actions, and Sync have no physical mapping in the current dispatcher.
 
-**Gray means not mapped in this guide:** outer physical pitch sliders, Sync, Key, PFL/headphone controls, Par/Par On/Off, master controls, and LEDs. No Sync hardware assignment is implied.
+**Gray means not mapped in this guide:** outer physical pitch sliders, Sync, Key, Par/Par On/Off, and master controls. No Sync hardware assignment is implied.
 
 Color is supplementary: amber = pitch; green = EQ and knob-press kill; violet = FX and loop; pink = samples; cyan = transport, jog, browsing, and mixing. All mapped controls have text labels.
 
