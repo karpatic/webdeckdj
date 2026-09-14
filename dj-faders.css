@@ -7,7 +7,7 @@
 
 /* Native ranges: volume rises upward; the crossfader still moves left to right. */
 .dj-app .bg-dark { background-color: rgba(34, 34, 34, .8) !important; }
-.deck-row { --bs-gutter-x: 0; margin-bottom: 0 !important; }
+.dj-app .deck-row { --bs-gutter-x: 0; margin-inline: 0; margin-bottom: 0 !important; }
 .deck-row > .col-md-6 { padding-left: 0; padding-right: 0; }
 .deck-row > div > .card { margin-bottom: 0; border-inline: 0; }
 .deck-row > div > .card > .card-body { padding-inline: 0; padding-bottom: 0; }
@@ -220,17 +220,17 @@
 }
 .deck-row .eq-controls {
   display: grid;
-  grid-template-columns: minmax(232px, 1fr) 96px 54px 72px;
+  grid-template-columns: 48px minmax(116px, 1fr) 96px 54px 72px;
   grid-template-rows: auto auto minmax(224px, auto);
-  grid-template-areas: "strip strip strip strip" "overview overview overview overview" "fx eq volume preview";
+  grid-template-areas: "strip strip strip strip strip" "overview overview overview overview overview" "loops fx eq volume preview";
   align-items: stretch;
   gap: 0.5rem;
   container-type: inline-size;
   margin-bottom: 0;
 }
 .deck-row .eq-controls-B {
-  grid-template-columns: 72px 54px 96px minmax(232px, 1fr);
-  grid-template-areas: "strip strip strip strip" "overview overview overview overview" "preview volume eq fx";
+  grid-template-columns: 72px 54px 96px minmax(116px, 1fr) 48px;
+  grid-template-areas: "strip strip strip strip strip" "overview overview overview overview overview" "preview volume eq fx loops";
 }
 .deck-row .eq-controls > .volume-fader { grid-area: volume; }
 .deck-row .eq-controls > .track-timeline { grid-area: overview; }
@@ -353,7 +353,8 @@
 .deck-live-visuals .transformed-visualization { z-index: 1; }
 .cue-buttons { display: flex; gap: 0.25rem; }
 .cue-buttons .btn { white-space: nowrap; padding: 0.3rem; }
-.shared-loop-fx-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; align-items: center; width: 100%; max-width: 900px; margin: 0 auto; }
+.deck-row .loop-buttons { grid-area: loops; flex-direction: column; justify-content: center; align-items: stretch; overflow-wrap: anywhere; }
+.deck-row .loop-buttons small { flex-basis: auto; }
 .loop-buttons { display: flex; flex-wrap: wrap; gap: 0.25rem; min-width: 0; }
 .loop-buttons-B { justify-content: flex-end; text-align: right; }
 .loop-buttons .btn { font-size: 0.75rem; padding: 0.25rem; }
@@ -542,11 +543,11 @@
   .deck-live-visuals { height: 32px; }
   .deck-row > .col-md-6 { width: 50%; min-width: 0; }
   .deck-row .eq-controls {
-    grid-template-columns: minmax(0, 1fr) 80px 44px 44px;
+    grid-template-columns: 44px minmax(44px, 1fr) 80px 44px 44px;
     grid-template-rows: auto auto minmax(208px, auto);
     gap: 4px;
   }
-  .deck-row .eq-controls-B { grid-template-columns: 44px 44px 80px minmax(0, 1fr); }
+  .deck-row .eq-controls-B { grid-template-columns: 44px 44px 80px minmax(44px, 1fr) 44px; }
   .deck-row .deck-control-strip { gap: 4px; padding: 0 2px; }
   .deck-row .deck-control-strip .rotary-field { width: 72px; }
   .deck-row .deck-fx-section,
@@ -597,8 +598,18 @@
   }
 }
 @media (max-width: 575px) {
-  .deck-row .eq-controls { grid-template-columns: minmax(0, 1fr) 52px 34px 28px; gap: 2px; }
-  .deck-row .eq-controls-B { grid-template-columns: 28px 34px 52px minmax(0, 1fr); }
+  .dj-app > .container-fluid > .card { border-inline: 0; }
+  .dj-app > .container-fluid > .card > .card-body { padding-inline: 0; }
+  .deck-row .eq-controls {
+    grid-template-columns: 42px minmax(44px, 1fr) 44px 30px;
+    grid-template-areas: "strip strip strip strip" "overview overview overview preview" "loops fx eq volume";
+    column-gap: 0;
+    row-gap: 2px;
+  }
+  .deck-row .eq-controls-B {
+    grid-template-columns: 30px 44px minmax(44px, 1fr) 42px;
+    grid-template-areas: "strip strip strip strip" "preview overview overview overview" "volume eq fx loops";
+  }
   .deck-row .eq-controls .deck-control-strip { flex-direction: column; align-items: flex-end; gap: 2px; }
   .deck-row .eq-controls-B .deck-control-strip { align-items: flex-start; }
   .deck-row .deck-control-strip .rotary-field { width: 50px; }
@@ -633,7 +644,6 @@
   .shared-transport-row { column-gap: 0.25rem; row-gap: 0; }
   .cue-buttons { flex-direction: column; }
   .cue-buttons .btn { font-size: 0.65rem; padding: 0.2rem; }
-  .shared-loop-fx-row { gap: 0.25rem; }
   .shared-play-button {
     min-width: 0;
     padding: 0.375rem 0.45rem;

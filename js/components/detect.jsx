@@ -367,10 +367,8 @@ const BeatDetector = ({
   );
 
   return (
-    <div className="mb-3">
-      {typeof renderDeckControls === 'function' && renderDeckControls(bpmControl, scrollPreview)}
-
-      {waveformEnabled || spectrumEnabled ? <div className="deck-live-visuals mb-3">
+    <div className="deck-analysis">
+      {waveformEnabled || spectrumEnabled ? <div className="deck-live-visuals">
         {waveformEnabled && <canvas
           ref={waveformCanvasRef}
           className="realtime-waveform"
@@ -384,6 +382,7 @@ const BeatDetector = ({
           height="80"
         ></canvas>}
       </div> : null}
+      {typeof renderDeckControls === 'function' && renderDeckControls(bpmControl, scrollPreview)}
     </div>
   );
 };

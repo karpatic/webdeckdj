@@ -1235,6 +1235,21 @@ const Mixer = ({
         {/* Left Deck */}
         <div className="col-md-6">
           <Deck
+            loopControls={(
+              <div className="loop-buttons">
+                <button id="deck-A-loop-in" type="button" className="btn btn-sm btn-outline-light" disabled={!leftReady} aria-label="Deck A Loop In" title="Save Deck A loop start; clears the previous loop" onClick={() => transportAction('left', 'in')}>In A</button>
+                <button id="deck-A-loop-out" type="button" className="btn btn-sm btn-outline-light" disabled={!leftReady} aria-label="Deck A Loop Out" aria-pressed={leftMarkers.active} title={leftMarkers.active ? 'Exit Deck A loop' : 'Save a later end and enable Deck A loop; press again to exit'} onClick={() => transportAction('left', 'out')}>{leftMarkers.active ? 'Loop A ●' : 'Out A'}</button>
+                <button id="deck-A-auto-loop" type="button" className="btn btn-sm btn-outline-info" disabled={leftAutoLoopDisabled}
+                  aria-label={`Deck A Auto Loop, ${autoLoopBeats.left} measured beats`} aria-pressed={leftAutoLoopActive}
+                  title={leftAutoLoopActive ? 'Exit Deck A Auto Loop' : leftAutoLoopAvailability.enabled ? `Start a ${autoLoopBeats.left}-beat loop at the current measured beat` : leftAutoLoopAvailability.reason}
+                  onClick={() => toggleAutoLoop('left')}>Auto {autoLoopBeats.left}{leftAutoLoopActive ? ' ●' : ''}</button>
+                <button type="button" className="btn btn-sm btn-outline-light auto-loop-cycle" disabled={!leftReady}
+                  aria-label="Cycle Deck A Auto Loop length: 4, 8, then 16 measured beats" title="Choose the next Auto Loop length"
+                  onClick={() => cycleAutoLoop('left')}>›</button>
+                <small className="loop-status" title="Deck A loop positions">{leftMarkers.in === null ? 'No loop' : `In ${formatTime(leftMarkers.in)} / Out ${leftMarkers.out === null ? '—' : formatTime(leftMarkers.out)}`}</small>
+                {leftMarkers.message && <small role="status">{leftMarkers.message}</small>}
+              </div>
+            )}
             name="A"
             midiEQRef={midiEQRef}
             midiFxRef={midiFxRef}
@@ -1277,6 +1292,21 @@ const Mixer = ({
         {/* Right Deck */}
         <div className="col-md-6">
           <Deck
+            loopControls={(
+              <div className="loop-buttons loop-buttons-B">
+                <button id="deck-B-loop-in" type="button" className="btn btn-sm btn-outline-light" disabled={!rightReady} aria-label="Deck B Loop In" title="Save Deck B loop start; clears the previous loop" onClick={() => transportAction('right', 'in')}>In B</button>
+                <button id="deck-B-loop-out" type="button" className="btn btn-sm btn-outline-light" disabled={!rightReady} aria-label="Deck B Loop Out" aria-pressed={rightMarkers.active} title={rightMarkers.active ? 'Exit Deck B loop' : 'Save a later end and enable Deck B loop; press again to exit'} onClick={() => transportAction('right', 'out')}>{rightMarkers.active ? 'Loop B ●' : 'Out B'}</button>
+                <button id="deck-B-auto-loop" type="button" className="btn btn-sm btn-outline-info" disabled={rightAutoLoopDisabled}
+                  aria-label={`Deck B Auto Loop, ${autoLoopBeats.right} measured beats`} aria-pressed={rightAutoLoopActive}
+                  title={rightAutoLoopActive ? 'Exit Deck B Auto Loop' : rightAutoLoopAvailability.enabled ? `Start a ${autoLoopBeats.right}-beat loop at the current measured beat` : rightAutoLoopAvailability.reason}
+                  onClick={() => toggleAutoLoop('right')}>Auto {autoLoopBeats.right}{rightAutoLoopActive ? ' ●' : ''}</button>
+                <button type="button" className="btn btn-sm btn-outline-light auto-loop-cycle" disabled={!rightReady}
+                  aria-label="Cycle Deck B Auto Loop length: 4, 8, then 16 measured beats" title="Choose the next Auto Loop length"
+                  onClick={() => cycleAutoLoop('right')}>›</button>
+                <small className="loop-status" title="Deck B loop positions">{rightMarkers.in === null ? 'No loop' : `In ${formatTime(rightMarkers.in)} / Out ${rightMarkers.out === null ? '—' : formatTime(rightMarkers.out)}`}</small>
+                {rightMarkers.message && <small role="status">{rightMarkers.message}</small>}
+              </div>
+            )}
             name="B"
             midiEQRef={midiEQRef}
             midiFxRef={midiFxRef}
@@ -1319,34 +1349,6 @@ const Mixer = ({
 
       {/* Shared deck transport and crossfader */}
       <div className="card bg-dark mb-3 shared-transport">
-        <div className="card-body shared-loop-fx-row">
-          <div className="loop-buttons">
-            <button id="deck-A-loop-in" type="button" className="btn btn-sm btn-outline-light" disabled={!leftReady} aria-label="Deck A Loop In" title="Save Deck A loop start; clears the previous loop" onClick={() => transportAction('left', 'in')}>In A</button>
-            <button id="deck-A-loop-out" type="button" className="btn btn-sm btn-outline-light" disabled={!leftReady} aria-label="Deck A Loop Out" aria-pressed={leftMarkers.active} title={leftMarkers.active ? 'Exit Deck A loop' : 'Save a later end and enable Deck A loop; press again to exit'} onClick={() => transportAction('left', 'out')}>{leftMarkers.active ? 'Loop A ●' : 'Out A'}</button>
-            <button id="deck-A-auto-loop" type="button" className="btn btn-sm btn-outline-info" disabled={leftAutoLoopDisabled}
-              aria-label={`Deck A Auto Loop, ${autoLoopBeats.left} measured beats`} aria-pressed={leftAutoLoopActive}
-              title={leftAutoLoopActive ? 'Exit Deck A Auto Loop' : leftAutoLoopAvailability.enabled ? `Start a ${autoLoopBeats.left}-beat loop at the current measured beat` : leftAutoLoopAvailability.reason}
-              onClick={() => toggleAutoLoop('left')}>Auto {autoLoopBeats.left}{leftAutoLoopActive ? ' ●' : ''}</button>
-            <button type="button" className="btn btn-sm btn-outline-light auto-loop-cycle" disabled={!leftReady}
-              aria-label="Cycle Deck A Auto Loop length: 4, 8, then 16 measured beats" title="Choose the next Auto Loop length"
-              onClick={() => cycleAutoLoop('left')}>›</button>
-            <small className="loop-status" title="Deck A loop positions">{leftMarkers.in === null ? 'No loop' : `In ${formatTime(leftMarkers.in)} / Out ${leftMarkers.out === null ? '—' : formatTime(leftMarkers.out)}`}</small>
-            {leftMarkers.message && <small role="status">{leftMarkers.message}</small>}
-          </div>
-          <div className="loop-buttons loop-buttons-B">
-            <button id="deck-B-loop-in" type="button" className="btn btn-sm btn-outline-light" disabled={!rightReady} aria-label="Deck B Loop In" title="Save Deck B loop start; clears the previous loop" onClick={() => transportAction('right', 'in')}>In B</button>
-            <button id="deck-B-loop-out" type="button" className="btn btn-sm btn-outline-light" disabled={!rightReady} aria-label="Deck B Loop Out" aria-pressed={rightMarkers.active} title={rightMarkers.active ? 'Exit Deck B loop' : 'Save a later end and enable Deck B loop; press again to exit'} onClick={() => transportAction('right', 'out')}>{rightMarkers.active ? 'Loop B ●' : 'Out B'}</button>
-            <button id="deck-B-auto-loop" type="button" className="btn btn-sm btn-outline-info" disabled={rightAutoLoopDisabled}
-              aria-label={`Deck B Auto Loop, ${autoLoopBeats.right} measured beats`} aria-pressed={rightAutoLoopActive}
-              title={rightAutoLoopActive ? 'Exit Deck B Auto Loop' : rightAutoLoopAvailability.enabled ? `Start a ${autoLoopBeats.right}-beat loop at the current measured beat` : rightAutoLoopAvailability.reason}
-              onClick={() => toggleAutoLoop('right')}>Auto {autoLoopBeats.right}{rightAutoLoopActive ? ' ●' : ''}</button>
-            <button type="button" className="btn btn-sm btn-outline-light auto-loop-cycle" disabled={!rightReady}
-              aria-label="Cycle Deck B Auto Loop length: 4, 8, then 16 measured beats" title="Choose the next Auto Loop length"
-              onClick={() => cycleAutoLoop('right')}>›</button>
-            <small className="loop-status" title="Deck B loop positions">{rightMarkers.in === null ? 'No loop' : `In ${formatTime(rightMarkers.in)} / Out ${rightMarkers.out === null ? '—' : formatTime(rightMarkers.out)}`}</small>
-            {rightMarkers.message && <small role="status">{rightMarkers.message}</small>}
-          </div>
-        </div>
         <div className="card-body shared-transport-row">
           <div className="cue-buttons">
             <button id="deck-A-cue" type="button" className="btn btn-sm btn-outline-light" disabled={!leftReady} aria-label="Deck A Cue" title={`Return to ${formatTime(leftMarkers.cue)} and pause Deck A`} onClick={() => transportAction('left', 'cue')}>Cue</button>

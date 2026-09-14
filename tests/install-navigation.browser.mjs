@@ -40,11 +40,29 @@ try {
     }, icon.src);
     assert.equal(result.join('x'), icon.sizes);
   }
-  for (const [width, height] of [[393, 852], [852, 393], [320, 568], [1440, 900]]) {
+  for (const [width, height] of [[393, 852], [852, 393], [320, 568], [576, 800], [1024, 768], [1440, 900]]) {
     await page.setViewportSize({ width, height });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `no horizontal overflow at ${width}`);
     const decks = await page.locator('.deck-row > div').evaluateAll(els => els.map(e => e.getBoundingClientRect().x));
     assert.ok(decks[1] > decks[0]);
+    const layout = await page.evaluate(() => {
+      const box = selector => document.querySelector(selector).getBoundingClientRect();
+      const a = box('.eq-controls-A'), b = box('.eq-controls-B');
+      const loopsA = box('.eq-controls-A .loop-buttons'), loopsB = box('.eq-controls-B .loop-buttons');
+      const fxA = box('.eq-controls-A .deck-fx-section'), fxB = box('.eq-controls-B .deck-fx-section');
+      return {
+        sameRow: a.y === b.y,
+        outerLoops: loopsA.right <= fxA.x && loopsB.x >= fxB.right,
+        alignedLoops: loopsA.y === fxA.y && loopsB.y === fxB.y,
+        gap: box('.shared-transport').y - Math.max(a.bottom, b.bottom),
+        knobs: [...document.querySelectorAll('.deck-row .rotary-control')].every(e => e.offsetWidth >= 44 && e.offsetHeight >= 44),
+        footerBelowCrate: !document.querySelector('.midi-status-footer') || box('.midi-status-footer').y >= box('.crate-browser').bottom
+      };
+    });
+    assert.ok(layout.sameRow && layout.outerLoops && layout.alignedLoops, `mirrored outer loops at ${width}`);
+    assert.ok(layout.gap <= 1, `no trailing deck reservation at ${width}: ${layout.gap}`);
+    assert.ok(layout.knobs, `touch knobs retained at ${width}`);
+    assert.ok(layout.footerBelowCrate, 'MIDI status stays below crate');
   }
   await page.setViewportSize({ width: 393, height: 852 });
   await page.getByRole('button', { name: 'MIDI', exact: true }).click();
@@ -90,6 +108,21 @@ try {
   await page.waitForFunction(before => window.scrollCalls.length === before + 1, guiBefore);
   await page.waitForFunction(() => scrollY === 0);
   await noPlayback();
+  // Relocated loop controls still use the same paused deck transport and state.
+  for (const deck of ['A', 'B']) {
+    await page.evaluate(deck => { document.querySelector(`#deck-${deck}-audio`).currentTime = 1; }, deck);
+    await page.locator(`#deck-${deck}-loop-in`).click();
+    await page.evaluate(deck => { document.querySelector(`#deck-${deck}-audio`).currentTime = 2; }, deck);
+    await page.locator(`#deck-${deck}-loop-out`).click();
+    assert.equal(await page.locator(`#deck-${deck}-loop-out`).getAttribute('aria-pressed'), 'true');
+    await page.locator(`#deck-${deck}-loop-out`).click();
+    assert.equal(await page.locator(`#deck-${deck}-loop-out`).getAttribute('aria-pressed'), 'false');
+    for (const beats of [8, 16, 4]) {
+      await page.getByRole('button', { name: `Cycle Deck ${deck} Auto Loop length: 4, 8, then 16 measured beats`, exact: true }).click();
+      assert.equal(await page.locator(`#deck-${deck}-auto-loop`).getAttribute('aria-label'), `Deck ${deck} Auto Loop, ${beats} measured beats`);
+    }
+    await noPlayback();
+  }
   await page.screenshot({ path: '/tmp/webdeck-mobile.png', fullPage: true });
   // Failed network loads must leave the user in the crate with an error.
   await page.route('**/examples/dj-tutorial/*.mp3', route => route.abort());
@@ -99,5 +132,5 @@ try {
   await page.getByText(/Could not load.*bundled audio file/).waitFor();
   assert.equal(await page.evaluate(() => window.scrollCalls.length), before);
   assert.deepEqual(errors, [], 'no browser runtime errors');
-  console.log('PASS: manifest/icons; compact 320/393/852/1440 layouts; GUI/mobile and MIDI loads/Directory; smooth/reduced motion; no render scrolling or autoplay; failed load stays in crate.');
+  console.log('PASS: manifest/icons; compact 320/393/576/852/1024/1440 layouts; outer loops and transport gap; loop in/out and length cycling; GUI/mobile and MIDI loads/Directory; smooth/reduced motion; no render scrolling or autoplay; failed load stays in crate.');
 } finally { await browser.close(); }

@@ -7,7 +7,7 @@ const formatSignedValue = (value, suffix) => {
   return `${value > 0 ? "+" : ""}${displayValue}${suffix}`;
 };
 
-const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, pitchStepActive, onPitchChange, onPitchAdjust, onPitchStepCancel, volume, onVolumeChange, timeline, scrollPreview, midiEQRef, midiFxRef, onMidiEqStateChange, onMidiFxStateChange, sampleControl, fxRack, beatAvailable }) => {
+const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, pitch, pitchStepActive, onPitchChange, onPitchAdjust, onPitchStepCancel, volume, onVolumeChange, timeline, scrollPreview, midiEQRef, midiFxRef, onMidiEqStateChange, onMidiFxStateChange, sampleControl, loopControls, fxRack, beatAvailable }) => {
   const [eq, setEq] = React.useState({ bass: 0, mid: 0, treble: 0 });
   const [killed, setKilled] = React.useState({ bass: false, mid: false, treble: false });
 
@@ -95,6 +95,7 @@ const EQ = ({ nodesRef, nodesVersion, audioContext, name, audioRef, bpmControl, 
         <div className="deck-bpm-control">{bpmControl}</div>
       </div>
       {timeline}
+      {loopControls}
       <div className="deck-fx-section">
         <div className="deck-fx-knobs">
           <FxKnob deck={name} slot={0} rack={fxRack} beatAvailable={beatAvailable} midiFxRef={midiFxRef} onMidiFxStateChange={onMidiFxStateChange} />

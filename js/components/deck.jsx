@@ -26,6 +26,7 @@ const Deck = ({
   onMidiEqStateChange,
   onMidiFxStateChange,
   sampleControl,
+  loopControls,
   syncControl,
   onAnalysisChange,
   onBeatMapChange,
@@ -303,6 +304,7 @@ const Deck = ({
                 onMidiEqStateChange={onMidiEqStateChange}
                 onMidiFxStateChange={onMidiFxStateChange}
                 sampleControl={sampleControl}
+                loopControls={loopControls}
                 fxRack={fxRack}
                 beatAvailable={beatAvailable}
                 timeline={(
