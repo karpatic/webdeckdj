@@ -1,3 +1,10 @@
+/* Keep controls clear of phone cutouts without adding spacing on rectangular screens. */
+.dj-app {
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.crate-browser { scroll-margin-top: env(safe-area-inset-top, 0px); }
+
 /* Native ranges: volume rises upward; the crossfader still moves left to right. */
 .dj-app .bg-dark { background-color: rgba(34, 34, 34, .8) !important; }
 .deck-row { --bs-gutter-x: 0; margin-bottom: 0 !important; }

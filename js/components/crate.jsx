@@ -98,8 +98,8 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
         }}
         onPointerMove={event => {
           const gesture = pointerGestureRef.current;
-          if (gesture && gesture.key === rowKey
-            && (Math.abs(event.clientX - gesture.x) > 10 || Math.abs(event.clientY - gesture.y) > 10)) {
+          if (!gesture || gesture.key !== rowKey) return;
+          if (Math.abs(event.clientX - gesture.x) > 10 || Math.abs(event.clientY - gesture.y) > 10) {
             gesture.moved = true;
           }
         }}
@@ -477,6 +477,7 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
     }
     if (deck === 'left') onSelectLeftTrack(file);
     else onSelectRightTrack(file);
+    window.dj.navigation.showDecks();
   };
 
   const loadExampleTrack = async (track, deck) => {
@@ -577,7 +578,8 @@ const Crate = ({ onSelectLeftTrack, onSelectRightTrack, onFxSamplesChange, selec
     showDirectories: () => {
       setMobileActionKey(null);
       setFolderPath('');
-      if (browserRef.current) browserRef.current.focus();
+      if (browserRef.current) browserRef.current.focus({ preventScroll: true });
+      window.dj.navigation.showDirectory(browserRef.current);
       setBrowseFocus('directories');
       setSelectedDirectoryKey(currentKey => directoryEntries.some(dir => dir.name === currentKey)
         ? currentKey
